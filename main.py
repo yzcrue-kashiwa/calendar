@@ -25,6 +25,7 @@ headers = {
 
 def parse_date(text):
     try:
+        text = text.replace(" ", "").replace("　", "")
         month, day = text.split("（")[0].split("/")
         year = datetime.now().year
         return f"{year}-{int(month):02}-{int(day):02}"
@@ -58,11 +59,16 @@ def scrape_site(site):
                 if not cols:
                     continue
 
-                # ■ 日付判定（フォーム除外）
-                if "/" in cols[0] and len(cols[0]) < 10:
-                    current_date = parse_date(cols[0])
+                text = cols[0]
 
-                # ■ 各枠チェック（ここが今回の核心）
+                # ★ 日付判定（超ゆるく）
+                if "/" in text:
+                    parsed = parse_date(text)
+                    if parsed:
+                        current_date = parsed
+                        print("DATE:", current_date)
+
+                # ★ 空き判定
                 if current_date and len(cols) >= 2:
 
                     types = ["一部", "二部", "貸切"]
@@ -71,7 +77,6 @@ def scrape_site(site):
                         if i + 1 < len(cols):
                             status_text = cols[i + 1]
 
-                            # 空き判定（ゆるめ）
                             if (
                                 status_text
                                 and "×" not in status_text
@@ -97,12 +102,10 @@ def main():
     all_events = []
 
     for site in SITES:
-        events = scrape_site(site)
-        all_events += events
+        all_events += scrape_site(site)
 
     print("TOTAL EVENTS:", len(all_events))
 
-    # 日付順ソート
     all_events.sort(key=lambda x: x["date"] if x["date"] else "")
 
     with open("data.json", "w", encoding="utf-8") as f:
