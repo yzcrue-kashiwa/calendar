@@ -3,47 +3,63 @@ from bs4 import BeautifulSoup
 import json
 from datetime import datetime
 
-# スタジオごとの予約ページURL
-studios = {
-    "Couleur": "https://couleur.studio-colore.tokyo/yoyaku-toiawase/",
-    "Claris": "https://claris-studio-colore-mixbox.com/reserve/"
+# サイトごとの部上限設定
+SITE_CONFIG = {
+    "Couleur": {"url": "https://couleur.studio-colore.tokyo/yoyaku-toiawase/", "max_part": 2},
+    "Claris": {"url": "https://claris-studio-colore-mixbox.com/reserve/", "max_part": 2},
+    "Colore": {"url": "https://fuel-studio-colore.com/reserve/", "max_part": 2},
 }
 
-all_reservations = []
+def normalize_part(text):
+    # 半角全角スペース削除、1部○形式に統一
+    text = text.replace(" ", "").replace("　", "")
+    return text
 
-for studio_name, url in studios.items():
-    resp = requests.get(url)
-    resp.encoding = resp.apparent_encoding
-    soup = BeautifulSoup(resp.text, "html.parser")
+def scrape_site(name, config):
+    url = config["url"]
+    max_part = config["max_part"]
+    res = requests.get(url)
+    res.raise_for_status()
+    soup = BeautifulSoup(res.text, "html.parser")
     
-    # ここで各日付の予約行を取得（サイトに応じてCSSセレクタは調整）
-    # 仮に日付は <th class="date">、部数は <td class="time"> 内にある場合
-    table_rows = soup.select("table tr")
+    events = []
     
-    for row in table_rows:
-        date_cell = row.select_one("th.date")
-        if not date_cell:
+    # 日付ごとの予約情報が <table> または <div class="reserve"> などにある想定
+    # ※実際の構造に合わせて selector を調整
+    for row in soup.select(".reserve-row"):  
+        date_tag = row.select_one(".reserve-date")
+        if not date_tag:
             continue
-        date_text = date_cell.get_text(strip=True)
+        date_str = date_tag.get_text().strip()
         try:
-            date_obj = datetime.strptime(date_text, "%Y-%m-%d")
-        except:
-            continue  # 日付でなければスキップ
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            continue
         
-        # 各部のセルを確認
-        time_cells = row.select("td.time")
-        for cell in time_cells:
-            time_text = cell.get_text(strip=True)
-            # 「1部」「2部」だけ取得、「貸切」は除外
-            if time_text in ["1部○", "2部○"]:
-                all_reservations.append({
-                    "date": date_obj.strftime("%Y-%m-%d"),
-                    "type": time_text,
-                    "source": studio_name
-                })
+        # 部情報
+        for part_tag in row.select(".reserve-part"):
+            part_text = normalize_part(part_tag.get_text())
+            if "部○" not in part_text:
+                continue
+            part_number = int(part_text[0])
+            if part_number > max_part:
+                continue  # 存在しない部はスキップ
+            events.append({
+                "date": date_obj.strftime("%Y-%m-%d"),
+                "type": part_text,
+                "source": name
+            })
+    return events
 
-# JSON出力
-with open("reservations.json", "w", encoding="utf-8") as f:
-    json.dump(all_reservations, f, ensure_ascii=False, indent=2)
+all_events = []
+for name, config in SITE_CONFIG.items():
+    all_events.extend(scrape_site(name, config))
 
-print(f"取得件数: {len(all_reservations)}")
+# 重複を削除
+unique_events = [dict(t) for t in {tuple(e.items()) for e in all_events}]
+
+# JSON 保存
+with open("data.json", "w", encoding="utf-8") as f:
+    json.dump(unique_events, f, ensure_ascii=False, indent=2)
+
+print(f"Saved {len(unique_events)} events.")
