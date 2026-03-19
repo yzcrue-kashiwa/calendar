@@ -25,12 +25,10 @@ headers = {
 
 def parse_date(text):
     try:
-        # 例: 4/1（水）
         month, day = text.split("（")[0].split("/")
         year = datetime.now().year
         return f"{year}-{int(month):02}-{int(day):02}"
-    except Exception as e:
-        print("DATE PARSE ERROR:", text)
+    except:
         return None
 
 
@@ -51,7 +49,6 @@ def scrape_site(site):
 
         for table in tables:
             rows = table.find_all("tr")
-            print("ROW COUNT:", len(rows))
 
             current_date = None
 
@@ -61,17 +58,17 @@ def scrape_site(site):
                 if not cols:
                     continue
 
-                # 日付判定
-                if "/" in cols[0]:
+                # ■ 日付判定（フォーム除外）
+                if "/" in cols[0] and len(cols[0]) < 10:
                     current_date = parse_date(cols[0])
 
                 if len(cols) >= 2 and current_date:
-                    status = cols[1]
+                    status_text = cols[1]
 
-                    # 空き判定
-                    if "○" in status:
+                    # ■ 空き判定（強化版）
+                    if "×" not in status_text and "満" not in status_text:
                         for t in ["一部", "二部", "貸切"]:
-                            if t in cols[0] or t in status:
+                            if t in cols[0] or t in status_text:
                                 events.append({
                                     "date": current_date,
                                     "type": t,
