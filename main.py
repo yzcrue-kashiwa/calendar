@@ -50,7 +50,8 @@ def scrape_site(site):
                     if not day.isdigit():
                         continue
 
-                    date_str = f"{year}-{int(day):02}"
+                    month = datetime.now().month
+                    date_str = f"{year}-{month:02}-{int(day):02}"
 
                     # 一部
                     if d < len(r1) and "○" in r1[d]:
