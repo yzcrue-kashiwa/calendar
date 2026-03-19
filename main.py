@@ -24,7 +24,9 @@ def scrape_site(site):
         tables = soup.find_all("table")
 
         events = []
-        year = datetime.now().year
+        now = datetime.now()
+        year = now.year
+        month = now.month  # ★ 月も入れる
 
         for table in tables:
             rows = table.find_all("tr")
@@ -32,7 +34,7 @@ def scrape_site(site):
             i = 0
             while i < len(rows) - 3:
 
-                # 4行セット取得
+                # 4行セット
                 date_row = rows[i].find_all(["td", "th"])
                 row1 = rows[i + 1].find_all("td")
                 row2 = rows[i + 2].find_all("td")
@@ -43,41 +45,63 @@ def scrape_site(site):
                 r2 = [c.get_text(strip=True) for c in row2]
                 r3 = [c.get_text(strip=True) for c in row3]
 
-                # 7日分ループ
                 for d in range(min(7, len(dates))):
                     day = dates[d]
 
+                    # 数字じゃないのはスキップ
                     if not day.isdigit():
                         continue
 
-                    month = datetime.now().month
+                    # ★ 正しい日付生成
                     date_str = f"{year}-{month:02}-{int(day):02}"
 
+                    # -----------------
                     # 一部
-                    if d < len(r1) and "○" in r1[d]:
-                        events.append({
-                            "date": date_str,
-                            "type": "一部",
-                            "source": site["name"]
-                        })
+                    # -----------------
+                    if d < len(r1):
+                        text = r1[d]
+                        if "○" in text or "o" in text.lower():
+                            events.append({
+                                "date": date_str,
+                                "type": "一部",
+                                "source": site["name"]
+                            })
 
+                    # -----------------
                     # 二部
-                    if d < len(r2) and "○" in r2[d]:
-                        events.append({
-                            "date": date_str,
-                            "type": "二部",
-                            "source": site["name"]
-                        })
+                    # -----------------
+                    if d < len(r2):
+                        text = r2[d]
+                        if "○" in text or "o" in text.lower():
+                            events.append({
+                                "date": date_str,
+                                "type": "二部",
+                                "source": site["name"]
+                            })
 
-                    # 貸切
-                    if d < len(r3) and "○" in r3[d]:
-                        events.append({
-                            "date": date_str,
-                            "type": "貸切",
-                            "source": site["name"]
-                        })
+                    # -----------------
+                    # 貸切（分解）
+                    # -----------------
+                    if d < len(r3):
+                        text = r3[d]
 
-                i += 4  # ★ここ重要
+                        # 1部
+                        if "1部○" in text:
+                            events.append({
+                                "date": date_str,
+                                "type": "貸切（一部）",
+                                "source": site["name"]
+                            })
+
+                        # 2部
+                        if "2部○" in text:
+                            events.append({
+                                "date": date_str,
+                                "type": "貸切（二部）",
+                                "source": site["name"]
+                            })
+
+                i += 4  # ★ 次の週へ
 
         print("EVENTS FOUND:", len(events))
         return events
@@ -96,6 +120,9 @@ def main():
         all_events += scrape_site(site)
 
     print("TOTAL EVENTS:", len(all_events))
+
+    # 日付順ソート
+    all_events.sort(key=lambda x: x["date"])
 
     with open("data.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
