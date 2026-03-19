@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>空き状況</title>
-<meta http-equiv="Cache-Control" content="no-cache">
-</head>
 
-<body>
-<h1>空き状況</h1>
-  <p id="updated" style="text-align:center; color:gray;"></p>
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <style>
 body {
   font-family: sans-serif;
@@ -17,6 +16,24 @@ body {
 
 h1 {
   text-align: center;
+}
+
+#updated {
+  text-align: center;
+  color: gray;
+  margin-bottom: 10px;
+}
+
+.button-area {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .list {
@@ -33,52 +50,103 @@ h1 {
   font-weight: bold;
 }
 
+.source {
+  font-size: 12px;
+}
+
 .type {
-  color: green;
+  font-weight: bold;
+}
+
+/* 色分け */
+.couleur { color: blue; }
+.colore { color: green; }
+.claris { color: purple; }
+
+.loading {
+  text-align: center;
 }
 </style>
-<div class="list" id="list"></div>
-<div style="text-align:center; margin: 10px;">
-  <button onclick="reloadData()" 
-    style="padding:10px 20px; font-size:16px; border-radius:8px; cursor:pointer;">
-    🔄 更新する
-  </button>
+</head>
+
+<body>
+
+<h1>今後1ヶ月の空き状況</h1>
+
+<p id="updated"></p>
+
+<div class="button-area">
+  <button onclick="reloadData()">🔄 更新する</button>
 </div>
+
+<div class="list" id="list"></div>
+
 <script>
-  reloadData();
-fetch("data.json")
-  .then(res => {
-    // 更新時刻取得
-    const lastModified = res.headers.get("Last-Modified");
+function reloadData() {
+  const list = document.getElementById("list");
+  const updated = document.getElementById("updated");
 
-    if (lastModified) {
-      const date = new Date(lastModified);
-      document.getElementById("updated").textContent =
-        "最終更新: " + date.toLocaleString();
-    }
+  list.innerHTML = '<div class="loading">🔄 更新中...</div>';
 
-    return res.json();
-  })
-  .then(data => {
-    const list = document.getElementById("list");
+  fetch("data.json?nocache=" + new Date().getTime())
+    .then(res => {
+      const lastModified = res.headers.get("Last-Modified");
 
-    if (data.length === 0) {
-      list.innerHTML = "現在空きはありません";
-      return;
-    }
+      if (lastModified) {
+        const date = new Date(lastModified);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 60000);
 
-    data.forEach(d => {
-      const div = document.createElement("div");
-      div.className = "item";
+        updated.textContent =
+          `最終更新: ${date.toLocaleString()}（${diff}分前）`;
+      }
 
-      div.innerHTML = `
-        <div class="date">${d.date}</div>
-        <div class="type">空きあり（${d.type}）</div>
-      `;
+      return res.json();
+    })
+    .then(data => {
+      list.innerHTML = "";
 
-      list.appendChild(div);
+      const today = new Date();
+      const oneMonthLater = new Date();
+      oneMonthLater.setMonth(today.getMonth() + 1);
+
+      // 1ヶ月以内に絞る
+      const filtered = data.filter(d => {
+        const date = new Date(d.date);
+        return date >= today && date <= oneMonthLater;
+      });
+
+      // 日付順
+      filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (filtered.length === 0) {
+        list.innerHTML = "今後1ヶ月の空きはありません";
+        return;
+      }
+
+      filtered.forEach(d => {
+        const div = document.createElement("div");
+        div.className = "item";
+
+        let colorClass = "";
+        if (d.source === "Couleur") colorClass = "couleur";
+        if (d.source === "Colore") colorClass = "colore";
+        if (d.source === "Claris") colorClass = "claris";
+
+        div.innerHTML = `
+          <div class="date">${d.date}</div>
+          <div class="source ${colorClass}">${d.source}</div>
+          <div class="type">空きあり（${d.type}）</div>
+        `;
+
+        list.appendChild(div);
+      });
     });
-  });
+}
+
+// 初回読み込み
+reloadData();
 </script>
+
 </body>
 </html>
