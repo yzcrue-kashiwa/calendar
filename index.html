@@ -82,70 +82,39 @@ button {
 <div class="list" id="list"></div>
 
 <script>
-function reloadData() {
-  const list = document.getElementById("list");
-  const updated = document.getElementById("updated");
+const grouped = {};
 
-  list.innerHTML = '<div class="loading">🔄 更新中...</div>';
+// 日付ごとにまとめる
+filtered.forEach(d => {
+  if (!grouped[d.date]) {
+    grouped[d.date] = [];
+  }
+  grouped[d.date].push(d);
+});
 
-  fetch("data.json?nocache=" + new Date().getTime())
-    .then(res => {
-      const lastModified = res.headers.get("Last-Modified");
+// 描画
+Object.keys(grouped).forEach(date => {
+  const div = document.createElement("div");
+  div.className = "item";
 
-      if (lastModified) {
-        const date = new Date(lastModified);
-        const now = new Date();
-        const diff = Math.floor((now - date) / 60000);
+  let inner = `<div class="date">${date}</div>`;
 
-        updated.textContent =
-          `最終更新: ${date.toLocaleString()}（${diff}分前）`;
-      }
+  grouped[date].forEach(d => {
+    let colorClass = "";
+    if (d.source === "Couleur") colorClass = "couleur";
+    if (d.source === "Colore") colorClass = "colore";
+    if (d.source === "Claris") colorClass = "claris";
 
-      return res.json();
-    })
-    .then(data => {
-      list.innerHTML = "";
+    inner += `
+      <div class="source ${colorClass}">
+        ・${d.source}（${d.type}）
+      </div>
+    `;
+  });
 
-      const today = new Date();
-      const oneMonthLater = new Date();
-      oneMonthLater.setMonth(today.getMonth() + 1);
-
-      // 1ヶ月以内に絞る
-      const filtered = data.filter(d => {
-        const date = new Date(d.date);
-        return date >= today && date <= oneMonthLater;
-      });
-
-      // 日付順
-      filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      if (filtered.length === 0) {
-        list.innerHTML = "今後1ヶ月の空きはありません";
-        return;
-      }
-
-      filtered.forEach(d => {
-        const div = document.createElement("div");
-        div.className = "item";
-
-        let colorClass = "";
-        if (d.source === "Couleur") colorClass = "couleur";
-        if (d.source === "Colore") colorClass = "colore";
-        if (d.source === "Claris") colorClass = "claris";
-
-        div.innerHTML = `
-          <div class="date">${d.date}</div>
-          <div class="source ${colorClass}">${d.source}</div>
-          <div class="type">空きあり（${d.type}）</div>
-        `;
-
-        list.appendChild(div);
-      });
-    });
-}
-
-// 初回読み込み
-reloadData();
+  div.innerHTML = inner;
+  list.appendChild(div);
+});
 </script>
 
 </body>
