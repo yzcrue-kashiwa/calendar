@@ -3,74 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>スタジオ空きカレンダー</title>
-
-<!-- キャッシュ無効化 -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<title>スタジオ空きカレンダー（10日間表示）</title>
 
 <style>
-  body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+  body { font-family: sans-serif; padding: 20px; }
   h1 { text-align: center; }
   table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th, td { border: 1px solid #ccc; width: 14.28%; height: 80px; vertical-align: top; padding: 5px; }
   th { background: #eee; }
-  .Couleur { background-color: #ffdede; }
-  .Colore { background-color: #deffde; }
-  .Claris { background-color: #dedeff; }
+  td span { display: block; font-size: 0.9em; margin-top: 4px; }
+  .Couleur { background: #ffdede; }
+  .Colore { background: #deffde; }
+  .Claris { background: #dedeff; }
+  .today { border: 2px solid #f00; }
 </style>
 </head>
 <body>
 
-<h1>スタジオ空きカレンダー</h1>
+<h1>スタジオ空きカレンダー（今日〜10日間）</h1>
 <button onclick="loadData()">更新</button>
 
 <table id="calendar">
   <thead>
     <tr>
-      <th>日付</th>
-      <th>時間帯</th>
-      <th>店舗</th>
+      <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th><th>日</th>
     </tr>
   </thead>
-  <tbody>
-    <tr><td colspan="3">読み込み中…</td></tr>
-  </tbody>
+  <tbody></tbody>
 </table>
 
 <script>
 async function loadData() {
   const tbody = document.querySelector("#calendar tbody");
-  tbody.innerHTML = "<tr><td colspan='3'>読み込み中…</td></tr>";
+  tbody.innerHTML = "<tr><td colspan='7'>読み込み中…</td></tr>";
 
   try {
-    const res = await fetch("./data.json?nocache=" + new Date().getTime());
+    const res = await fetch("/calendar/data.json?nocache=" + new Date().getTime());
+    if (!res.ok) throw new Error("データ取得失敗");
     const data = await res.json();
 
-    if(data.length === 0){
-      tbody.innerHTML = "<tr><td colspan='3'>空きはありません</td></tr>";
-      return;
+    const today = new Date();
+    const endDate = new Date();
+    endDate.setDate(today.getDate() + 9);
+
+    // 10日間の空きデータだけ、貸切は除外
+    const events = data.filter(event => {
+      const d = new Date(event.date);
+      return d >= today && d <= endDate && !event.type.toLowerCase().includes("貸切") && event.type.includes("○");
+    });
+
+    // カレンダー初期化（最大6週）
+    const calendar = [];
+    for (let i = 0; i < 6; i++) calendar.push(new Array(7).fill([]));
+
+    // 日付配置（月曜始まり）
+    let current = new Date(today);
+    for (let i = 0; i < 10; i++) {
+      let weekday = current.getDay(); // 0=日,6=土
+      weekday = weekday === 0 ? 6 : weekday - 1; // 月曜始まり調整
+      const week = Math.floor((current.getDate() - 1 + (today.getDay() === 0 ? 6 : today.getDay() - 1)) / 7);
+      calendar[week][weekday] = events
+        .filter(e => e.date === current.toISOString().slice(0,10))
+        .map(e => e.source + " " + e.type);
+      current.setDate(current.getDate() + 1);
     }
 
+    // HTML生成
     tbody.innerHTML = "";
-    data.forEach(event => {
+    calendar.forEach(week => {
       const tr = document.createElement("tr");
-      tr.className = event.source;
-      tr.innerHTML = `
-        <td>${event.date}</td>
-        <td>${event.type}</td>
-        <td>${event.source}</td>
-      `;
+      week.forEach(cell => {
+        const td = document.createElement("td");
+        if (cell.length > 0) {
+          cell.forEach(text => {
+            const span = document.createElement("span");
+            span.textContent = text;
+            td.appendChild(span);
+          });
+        }
+        tr.appendChild(td);
+      });
       tbody.appendChild(tr);
     });
-  } catch(e) {
-    tbody.innerHTML = "<tr><td colspan='3'>読み込みエラー</td></tr>";
-    console.error(e);
+
+  } catch(err) {
+    tbody.innerHTML = "<tr><td colspan='7'>データ読み込みエラー</td></tr>";
+    console.error(err);
   }
 }
 
-// ページ読み込み時に自動更新
 window.addEventListener("load", loadData);
 </script>
 
