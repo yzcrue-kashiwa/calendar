@@ -12,16 +12,6 @@ SITES = [
 headers = {"User-Agent": "Mozilla/5.0"}
 
 
-def parse_date(text):
-    try:
-        text = text.replace(" ", "").replace("　", "")
-        month, day = text.split("（")[0].split("/")
-        year = datetime.now().year
-        return f"{year}-{int(month):02}-{int(day):02}"
-    except:
-        return None
-
-
 def scrape_site(site):
     print("----")
     print("SITE:", site["name"])
@@ -31,58 +21,68 @@ def scrape_site(site):
         print("STATUS:", res.status_code)
 
         soup = BeautifulSoup(res.text, "html.parser")
-
         tables = soup.find_all("table")
-        print("TABLE COUNT:", len(tables))
 
         events = []
+        year = datetime.now().year
 
         for table in tables:
             rows = table.find_all("tr")
 
-            for row in rows:
-                # td + th 両方取得
-                cols = [c.get_text(strip=True) for c in row.find_all(["td", "th"])]
+            i = 0
+            while i < len(rows) - 3:
 
-                if not cols:
-                    continue
+                # 4行セット取得
+                date_row = rows[i].find_all(["td", "th"])
+                row1 = rows[i + 1].find_all("td")
+                row2 = rows[i + 2].find_all("td")
+                row3 = rows[i + 3].find_all("td")
 
-                # ★ デバッグ（これが重要）
-                print("DEBUG:", cols)
+                dates = [c.get_text(strip=True) for c in date_row]
+                r1 = [c.get_text(strip=True) for c in row1]
+                r2 = [c.get_text(strip=True) for c in row2]
+                r3 = [c.get_text(strip=True) for c in row3]
 
-                # 日付取得
-                date_text = cols[0]
-                current_date = parse_date(date_text)
+                # 7日分ループ
+                for d in range(min(7, len(dates))):
+                    day = dates[d]
 
-                if not current_date:
-                    continue
+                    if not day.isdigit():
+                        continue
 
-                print("DATE:", current_date)
+                    date_str = f"{year}-{int(day):02}"
 
-                # 各枠
-                types = ["一部", "二部", "貸切"]
+                    # 一部
+                    if d < len(r1) and "○" in r1[d]:
+                        events.append({
+                            "date": date_str,
+                            "type": "一部",
+                            "source": site["name"]
+                        })
 
-                for i, t in enumerate(types):
-                    if i + 1 < len(cols):
-                        status_text = cols[i + 1]
+                    # 二部
+                    if d < len(r2) and "○" in r2[d]:
+                        events.append({
+                            "date": date_str,
+                            "type": "二部",
+                            "source": site["name"]
+                        })
 
-                        # ★ ここもデバッグ
-                        print("CHECK:", t, status_text)
+                    # 貸切
+                    if d < len(r3) and "○" in r3[d]:
+                        events.append({
+                            "date": date_str,
+                            "type": "貸切",
+                            "source": site["name"]
+                        })
 
-                        # ★ 超ゆる判定（まずは全部拾う）
-                        if status_text:
-                            events.append({
-                                "date": current_date,
-                                "type": t,
-                                "source": site["name"],
-                                "raw": status_text  # ←中身確認用
-                            })
+                i += 4  # ★ここ重要
 
         print("EVENTS FOUND:", len(events))
         return events
 
     except Exception as e:
-        print("ERROR in", site["name"], ":", e)
+        print("ERROR:", e)
         return []
 
 
