@@ -51,42 +51,39 @@ def scrape_site(site):
         for table in tables:
             rows = table.find_all("tr")
 
-            current_date = None
-
             for row in rows:
-                cols = [c.text.strip() for c in row.find_all("td")]
+                # ★ td + th 両方取る
+                cols = [c.text.strip() for c in row.find_all(["td", "th"])]
 
-                if not cols:
+                if len(cols) < 2:
                     continue
 
-                text = cols[0]
+                # ★ 日付（1列目）
+                date_text = cols[0]
+                current_date = parse_date(date_text)
 
-                # ★ 日付判定（超ゆるく）
-                if "/" in text:
-                    parsed = parse_date(text)
-                    if parsed:
-                        current_date = parsed
-                        print("DATE:", current_date)
+                if not current_date:
+                    continue
 
-                # ★ 空き判定
-                if current_date and len(cols) >= 2:
+                print("DATE:", current_date)
 
-                    types = ["一部", "二部", "貸切"]
+                # ★ 各枠チェック
+                types = ["一部", "二部", "貸切"]
 
-                    for i, t in enumerate(types):
-                        if i + 1 < len(cols):
-                            status_text = cols[i + 1]
+                for i, t in enumerate(types):
+                    if i + 1 < len(cols):
+                        status_text = cols[i + 1]
 
-                            if (
-                                status_text
-                                and "×" not in status_text
-                                and "満" not in status_text
-                            ):
-                                events.append({
-                                    "date": current_date,
-                                    "type": t,
-                                    "source": site["name"]
-                                })
+                        if (
+                            status_text
+                            and "×" not in status_text
+                            and "満" not in status_text
+                        ):
+                            events.append({
+                                "date": current_date,
+                                "type": t,
+                                "source": site["name"]
+                            })
 
         print("EVENTS FOUND:", len(events))
         return events
