@@ -62,13 +62,21 @@ def scrape_site(site):
                 if "/" in cols[0] and len(cols[0]) < 10:
                     current_date = parse_date(cols[0])
 
-                if len(cols) >= 2 and current_date:
-                    status_text = cols[1]
+                # ■ 各枠チェック（ここが今回の核心）
+                if current_date and len(cols) >= 2:
 
-                    # ■ 空き判定（強化版）
-                    if "×" not in status_text and "満" not in status_text:
-                        for t in ["一部", "二部", "貸切"]:
-                            if t in cols[0] or t in status_text:
+                    types = ["一部", "二部", "貸切"]
+
+                    for i, t in enumerate(types):
+                        if i + 1 < len(cols):
+                            status_text = cols[i + 1]
+
+                            # 空き判定（ゆるめ）
+                            if (
+                                status_text
+                                and "×" not in status_text
+                                and "満" not in status_text
+                            ):
                                 events.append({
                                     "date": current_date,
                                     "type": t,
