@@ -3,7 +3,20 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import json
 
-URL = "https://couleur.studio-colore.tokyo/yoyaku-toiawase/"
+SITES = [
+    {
+        "url": "https://couleur.studio-colore.tokyo/yoyaku-toiawase/",
+        "name": "Couleur"
+    },
+    {
+        "url": "https://www.studio-colore.tokyo/reservation/",
+        "name": "Colore"
+    },
+    {
+        "url": "https://claris-studio-colore-mixbox.com/reserve/",
+        "name": "Claris"
+    }
+]
 
 headers = {
     "User-Agent": "Mozilla/5.0"
@@ -17,8 +30,9 @@ def parse_date(text):
     except:
         return None
 
-def scrape():
-    res = requests.get(URL, headers=headers)
+
+def scrape_site(site):
+    res = requests.get(site["url"], headers=headers)
     soup = BeautifulSoup(res.text, "html.parser")
 
     events = []
@@ -43,16 +57,28 @@ def scrape():
                     if t in cols[0] or t in status:
                         events.append({
                             "date": current_date,
-                            "type": t
+                            "type": t,
+                            "source": site["name"]
                         })
 
     return events
 
+
 def main():
-    data = scrape()
+    all_events = []
+
+    for site in SITES:
+        try:
+            all_events += scrape_site(site)
+        except Exception as e:
+            print(f"Error in {site['name']}:", e)
+
+    # 日付順ソート
+    all_events.sort(key=lambda x: x["date"])
 
     with open("data.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(all_events, f, ensure_ascii=False, indent=2)
+
 
 if __name__ == "__main__":
     main()
