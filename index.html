@@ -2,107 +2,62 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>スタジオ予約カレンダー</title>
+<title>空きカレンダー</title>
 <style>
-  body { font-family: sans-serif; padding: 20px; }
-  table { border-collapse: collapse; width: 100%; max-width: 600px; }
-  th, td { border: 1px solid #ccc; text-align: center; padding: 8px; }
-  th { background: #f0f0f0; }
-  td.past { background: #eee; color: #999; }
-  td.available { background: #d4fcd4; cursor: pointer; }
+body { font-family: Arial, sans-serif; }
+table { border-collapse: collapse; width: 100%; max-width: 600px; margin: auto; }
+th, td { border: 1px solid #ccc; text-align: center; padding: 8px; }
+th { background-color: #f0f0f0; }
+td.past { background-color: #eee; color: #999; }
+td.available { background-color: #d0f0d0; }
 </style>
 </head>
 <body>
 
-<h1>スタジオ予約カレンダー</h1>
-<table id="calendar">
-  <thead>
-    <tr>
-      <th>月</th>
-      <th>火</th>
-      <th>水</th>
-      <th>木</th>
-      <th>金</th>
-      <th>土</th>
-      <th>日</th>
-    </tr>
-  </thead>
-  <tbody id="calendar-body">
-  </tbody>
-</table>
+<h2 style="text-align:center;">予約空きカレンダー</h2>
+<div id="calendar"></div>
 
 <script>
-// サンプルJSON（Pythonで作ったreservations.jsonの内容をここに貼る）
-const reservations = [
-  {"date":"2026-03-19","type":"1部○","source":"Couleur"},
-  {"date":"2026-03-19","type":"2部○","source":"Couleur"},
-  {"date":"2026-03-19","type":"1部○","source":"Claris"},
-  {"date":"2026-03-19","type":"2部○","source":"Claris"}
-];
-
-// 今日の日付
 const today = new Date();
 
-// 今月情報
-const year = today.getFullYear();
-const month = today.getMonth(); // 0始まり
-
-// 月の初日と最終日
-const firstDay = new Date(year, month, 1);
-const lastDay = new Date(year, month + 1, 0);
-
-// 曜日が月曜始まりになるよう調整
-const startDay = (firstDay.getDay() + 6) % 7;
-
-// カレンダー本体
-const tbody = document.getElementById("calendar-body");
-let tr = document.createElement("tr");
-
-// 空セルを追加
-for (let i = 0; i < startDay; i++) {
-  const td = document.createElement("td");
-  tr.appendChild(td);
+// JSON 読み込み
+async function loadData() {
+  const res = await fetch('data.json');
+  const events = await res.json();
+  return events;
 }
 
-// 日付ループ
-for (let day = 1; day <= lastDay.getDate(); day++) {
-  const td = document.createElement("td");
-  const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+// カレンダー描画
+function renderCalendar(events) {
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(startDate.getDate() + 10); // 今日〜10日間
 
-  // 過ぎた日はグレーアウト
-  const dateObj = new Date(year, month, day);
-  if (dateObj < today.setHours(0,0,0,0)) {
-    td.className = "past";
-    td.textContent = day;
-  } else {
-    // 予約がある日だけ表示
-    const dayReservations = reservations.filter(r => r.date === dateStr);
-    if (dayReservations.length > 0) {
-      td.className = "available";
-      td.innerHTML = `${day}<br>${dayReservations.map(r => r.type + " (" + r.source + ")").join("<br>")}`;
-    } else {
-      td.textContent = day;
-    }
+  let html = '<table><tr>';
+  const weekdays = ['月','火','水','木','金','土','日'];
+  weekdays.forEach(day => html += `<th>${day}</th>`);
+  html += '</tr><tr>';
+
+  // 月曜始まりに調整
+  let current = new Date(startDate);
+  current.setDate(current.getDate() - (current.getDay() || 7) + 1);
+
+  while (current <= endDate) {
+    const dayEvents = events.filter(e => e.date === current.toISOString().slice(0,10));
+    const hasAvailable = dayEvents.length > 0;
+
+    const cls = current < today ? 'past' : hasAvailable ? 'available' : '';
+    html += `<td class="${cls}">${current.getDate()}${hasAvailable ? '<br>○' : ''}</td>`;
+
+    if (current.getDay() === 0) html += '</tr><tr>'; // 日曜で改行
+    current.setDate(current.getDate() + 1);
   }
 
-  tr.appendChild(td);
-
-  // 1週間ごとに新しい行
-  if ((day + startDay) % 7 === 0) {
-    tbody.appendChild(tr);
-    tr = document.createElement("tr");
-  }
+  html += '</tr></table>';
+  document.getElementById('calendar').innerHTML = html;
 }
 
-// 残りのセルを追加
-if (tr.children.length > 0) {
-  while (tr.children.length < 7) {
-    const td = document.createElement("td");
-    tr.appendChild(td);
-  }
-  tbody.appendChild(tr);
-}
+loadData().then(events => renderCalendar(events));
 </script>
-
 </body>
 </html>
