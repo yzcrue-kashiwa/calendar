@@ -2,17 +2,23 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>スタジオ空きカレンダー</title>
+
 <style>
-  body { font-family: sans-serif; margin: 20px; }
+  body { font-family: sans-serif; padding: 1rem; }
   table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #ccc; text-align: center; padding: 5px; }
-  th { background: #f0f0f0; }
-  .empty { color: #ccc; }
+  th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
+  th { background: #eee; }
+  .empty { color: #888; }
+  .Couleur { background:#ffdede; }
+  .Colore { background:#ddf; }
+  .Claris { background:#dfd; }
 </style>
 </head>
 <body>
-<h2>スタジオ空きカレンダー（貸切非表示）</h2>
+<h2>スタジオ空きカレンダー</h2>
+<button onclick="loadCalendar()">更新</button>
 <table id="calendar">
   <thead>
     <tr>
@@ -23,54 +29,55 @@
 </table>
 
 <script>
-const DAYS_TO_SHOW = 10; // 今日から10日間
-const today = new Date();
+async function loadCalendar() {
+  const res = await fetch("./data.json?nocache=" + new Date().getTime());
+  const data = await res.json();
 
-// JSON読み込み
-fetch('./data.json')
-  .then(r => r.json())
-  .then(data => {
-    // 貸切を除外して空きだけにする
-    const available = data.filter(d => !d.type.toLowerCase().includes('貸切'));
+  const today = new Date();
+  const endDate = new Date();
+  endDate.setDate(today.getDate() + 30);
 
-    // 日付ごとにまとめる
-    const byDate = {};
-    available.forEach(ev => {
-      if (!byDate[ev.date]) byDate[ev.date] = [];
-      byDate[ev.date].push(ev.type + ' (' + ev.source + ')');
-    });
+  const filtered = data.filter(e => e.type.includes('○'));
 
-    // カレンダー描画
-    const tbody = document.querySelector('#calendar tbody');
-    let date = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    let row = document.createElement('tr');
-    
-    // 月曜始まりにするための空セル
-    let startDay = (date.getDay() + 6) % 7;
-    for (let i = 0; i < startDay; i++) {
-      let td = document.createElement('td');
-      td.className = 'empty';
-      row.appendChild(td);
-    }
-
-    for (let i = 0; i < DAYS_TO_SHOW; i++) {
-      let td = document.createElement('td');
-      const ymd = date.toISOString().slice(0,10);
-      td.innerHTML = date.getDate() + '<br>' + (byDate[ymd]?.join('<br>') || '×');
-      row.appendChild(td);
-
-      if ((date.getDay() + 6) % 7 === 6) { // 日曜で改行
-        tbody.appendChild(row);
-        row = document.createElement('tr');
-      }
-      date.setDate(date.getDate() + 1);
-    }
-    // 最後の行を追加
-    if (row.children.length > 0) tbody.appendChild(row);
-  })
-  .catch(e => {
-    console.error('JSON読み込みエラー:', e);
+  const byDate = {};
+  filtered.forEach(e => {
+    if (!byDate[e.date]) byDate[e.date] = [];
+    byDate[e.date].push(e);
   });
+
+  const tbody = document.querySelector("#calendar tbody");
+  tbody.innerHTML = "";
+  
+  let cursor = new Date(today);
+  cursor.setDate(cursor.getDate() - ((cursor.getDay()+6)%7));
+
+  while (cursor <= endDate) {
+    const tr = document.createElement("tr");
+    for (let i = 0; i < 7; i++) {
+      const td = document.createElement("td");
+      const key = cursor.toISOString().slice(0,10);
+      const list = byDate[key] || [];
+
+      if (list.length) {
+        list.forEach(ev => {
+          const span = document.createElement("span");
+          span.textContent = `${ev.type} (${ev.source})`;
+          span.style.display = "block";
+          span.className = ev.source;
+          td.appendChild(span);
+        });
+      } else {
+        td.innerHTML = "<span class='empty'>空きなし</span>";
+      }
+      tr.appendChild(td);
+      cursor.setDate(cursor.getDate()+1);
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+loadCalendar();
 </script>
+
 </body>
 </html>
