@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import json
-
+print("START SCRAPING")
 SITES = [
     {
         "url": "https://couleur.studio-colore.tokyo/yoyaku-toiawase/",
