@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>空き状況</title>
-<p id="updated" style="text-align:center; color:gray;"></p>
+</head>
+
+<body>
+<h1>空き状況</h1>
+  <p id="updated" style="text-align:center; color:gray;"></p>
 <style>
 body {
   font-family: sans-serif;
@@ -32,13 +36,13 @@ h1 {
   color: green;
 }
 </style>
-</head>
-
-<body>
-
-<h1>空き状況</h1>
 <div class="list" id="list"></div>
-
+<div style="text-align:center; margin: 10px;">
+  <button onclick="reloadData()" 
+    style="padding:10px 20px; font-size:16px; border-radius:8px; cursor:pointer;">
+    🔄 更新する
+  </button>
+</div>
 <script>
 fetch("data.json")
   .then(res => {
