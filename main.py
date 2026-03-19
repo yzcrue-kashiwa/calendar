@@ -2,64 +2,78 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-# === 設定 ===
-API_URLS = {
-    "Couleur": "https://couleur.studio-colore.tokyo/api/reserve",  # 実際のAPIを確認
-    "Claris": "https://claris-studio-colore-mixbox.com/api/reserve"
-}
-
-# 取得する期間（日数）
-DAYS_AHEAD = 10
-
-# 有効な部（存在する部だけ）
-VALID_SECTIONS = ["1部", "2部"]
-
-# 出力ファイル
 OUTPUT_FILE = "events.json"
 
+SITES = [
+    {
+        "name": "Couleur",
+        "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"
+    },
+    {
+        "name": "Claris",
+        "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php"
+    }
+]
 
-def fetch_events(source, api_url):
-    """サイトのAPIからイベントを取得"""
-    events = []
-    for day_offset in range(DAYS_AHEAD):
-        date = (datetime.now() + timedelta(days=day_offset)).strftime("%Y-%m-%d")
-        # APIに送るパラメータ例（実際のAPIに合わせて変更）
-        params = {"date": date}
-        response = requests.get(api_url, params=params)
-        if response.status_code != 200:
-            print(f"Failed to fetch {source} for {date}")
+VALID_PARTS = ["1部", "2部"]
+DAYS = 10
+
+
+def fetch(site):
+    results = []
+
+    for i in range(DAYS):
+        date = (datetime.now() + timedelta(days=i)).strftime("%Y-%m-%d")
+
+        payload = {
+            "action": "get_reserve_data",  # ←ここ後で変える可能性あり
+            "date": date
+        }
+
+        try:
+            res = requests.post(site["url"], data=payload, timeout=10)
+        except Exception as e:
+            print("request error:", e)
+            continue
+
+        # JSONかチェック
+        if "application/json" not in res.headers.get("Content-Type", ""):
+            print(f"[{site['name']}] JSONじゃない → {date}")
             continue
 
         try:
-            data = response.json()  # JSON形式で返ってくることを想定
-        except Exception as e:
-            print(f"Invalid JSON from {source} for {date}: {e}")
+            data = res.json()
+        except:
+            print(f"[{site['name']}] JSONパース失敗 → {date}")
             continue
 
-        # dataの構造は { "sections": [{"name": "1部", "available": true}, ...] } を想定
-        for section in data.get("sections", []):
-            section_name = section.get("name", "").strip()
-            available = section.get("available", False)
-            if available and section_name in VALID_SECTIONS:
-                events.append({
-                    "date": date,
-                    "type": f"{section_name}○",
-                    "source": source
-                })
-    return events
+        # 構造は仮（ここ調整ポイント）
+        for item in data.get("data", []):
+            text = item.get("label", "").strip()
+
+            for part in VALID_PARTS:
+                if part in text and "○" in text:
+                    results.append({
+                        "date": date,
+                        "type": f"{part}○",
+                        "source": site["name"]
+                    })
+
+    return results
 
 
 def main():
     all_events = []
-    for source, api_url in API_URLS.items():
-        events = fetch_events(source, api_url)
+
+    for site in SITES:
+        print("fetch:", site["name"])
+        events = fetch(site)
         all_events.extend(events)
 
-    # JSON保存
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
-    print(f"Saved {len(all_events)} events.")
+    print("Saved", len(all_events), "events")
 
 
 if __name__ == "__main__":
