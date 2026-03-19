@@ -41,28 +41,27 @@ h1 {
 
 <script>
 fetch("data.json")
-  .then(res => res.json())
+  .then(res => {
+    // 更新時刻取得
+    const lastModified = res.headers.get("Last-Modified");
+
+    if (lastModified) {
+      const date = new Date(lastModified);
+      document.getElementById("updated").textContent =
+        "最終更新: " + date.toLocaleString();
+    }
+
+    return res.json();
+  })
   .then(data => {
     const list = document.getElementById("list");
 
-    const today = new Date();
-    const oneMonthLater = new Date();
-    oneMonthLater.setMonth(today.getMonth() + 1);
-
-    const filtered = data.filter(d => {
-      const date = new Date(d.date);
-      return date >= today && date <= oneMonthLater;
-    });
-
-    if (filtered.length === 0) {
-      list.innerHTML = "今後1ヶ月の空きはありません";
+    if (data.length === 0) {
+      list.innerHTML = "現在空きはありません";
       return;
     }
 
-    // 日付順にソート
-    filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    filtered.forEach(d => {
+    data.forEach(d => {
       const div = document.createElement("div");
       div.className = "item";
 
