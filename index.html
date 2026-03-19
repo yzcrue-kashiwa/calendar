@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>空き状況</title>
+
+<style>
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.list {
+  max-width: 500px;
+  margin: auto;
+}
+
+.item {
+  border-bottom: 1px solid #ccc;
+  padding: 10px;
+}
+
+.date {
+  font-weight: bold;
+}
+
+.type {
+  color: green;
+}
+</style>
+</head>
+
+<body>
+
+<h1>空き状況</h1>
+<div class="list" id="list"></div>
+
+<script>
+fetch("data.json")
+  .then(res => res.json())
+  .then(data => {
+    const list = document.getElementById("list");
+
+    if (data.length === 0) {
+      list.innerHTML = "現在空きはありません";
+      return;
+    }
+
+    data.forEach(d => {
+      const div = document.createElement("div");
+      div.className = "item";
+
+      div.innerHTML = `
+        <div class="date">${d.date}</div>
+        <div class="type">空きあり（${d.type}）</div>
+      `;
+
+      list.appendChild(div);
+    });
+  });
+</script>
+
+</body>
+</html>
