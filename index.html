@@ -6,63 +6,76 @@
 <title>スタジオ空きカレンダー</title>
 <style>
   body { font-family: sans-serif; padding: 1rem; background: #f7f7f7; }
-  table { border-collapse: collapse; width: 100%; max-width: 600px; margin: auto; }
-  th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
+  #calendar-wrapper { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 600px; }
+  th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; vertical-align: top; }
   th { background: #eee; }
   td.empty { background: #fff; color: #ccc; }
   td.available { background: #d4f4dd; color: #000; }
   #refresh { display: block; margin: 1rem auto; padding: 0.5rem 1rem; }
+  td span { display: block; font-size: 0.8rem; margin-top: 0.2rem; }
 </style>
 </head>
 <body>
 <h2 style="text-align:center;">スタジオ空きカレンダー</h2>
 <button id="refresh">更新</button>
-<table id="calendar">
-  <thead>
-    <tr>
-      <th>月</th><th>火</th><th>水</th><th>木</th>
-      <th>金</th><th>土</th><th>日</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+
+<div id="calendar-wrapper">
+  <table id="calendar">
+    <thead>
+      <tr>
+        <th>月</th><th>火</th><th>水</th><th>木</th>
+        <th>金</th><th>土</th><th>日</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script>
 async function loadCalendar() {
   const res = await fetch("./data.json?nocache=" + new Date().getTime());
   const events = await res.json();
 
-  // 今日から10日間だけ抽出、貸切は除外
+  // 今日から1ヶ月先まで（約4〜5週）
   const today = new Date();
-  const endDay = new Date();
-  endDay.setDate(today.getDate() + 9);
-  
+  const endDate = new Date();
+  endDate.setDate(today.getDate() + 30);
+
   const filtered = events.filter(e => {
     const d = new Date(e.date);
-    return d >= today && d <= endDay && e.type.includes('○');
+    return d >= today && d <= endDate && e.type.includes('○');
   });
 
-  // 日付ごとにまとめる
   const dayMap = {};
   filtered.forEach(e => {
     if (!dayMap[e.date]) dayMap[e.date] = [];
     dayMap[e.date].push(e.type + " (" + e.source + ")");
   });
 
-  // カレンダー作成（今日〜10日間）
   const tbody = document.querySelector("#calendar tbody");
   tbody.innerHTML = "";
 
+  // 月曜始まり
   let start = new Date(today);
-  start.setDate(today.getDate() - today.getDay() + 1); // 月曜始まり
+  start.setDate(start.getDate() - start.getDay() + 1);
 
-  for (let week = 0; week < 2; week++) {
+  while (start <= endDate) {
     const tr = document.createElement("tr");
     for (let i = 0; i < 7; i++) {
       const td = document.createElement("td");
       const dStr = start.toISOString().slice(0,10);
-      td.innerHTML = dayMap[dStr] ? dayMap[dStr].join("<br>") : "";
-      td.className = dayMap[dStr] ? "available" : "empty";
+      td.innerHTML = `<strong>${start.getDate()}</strong>`;
+      if (dayMap[dStr]) {
+        dayMap[dStr].forEach(ev => {
+          const span = document.createElement("span");
+          span.textContent = ev;
+          td.appendChild(span);
+        });
+        td.className = "available";
+      } else {
+        td.className = "empty";
+      }
       tr.appendChild(td);
       start.setDate(start.getDate() + 1);
     }
