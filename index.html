@@ -2,89 +2,75 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>スタジオ空きカレンダー</title>
 <style>
-  body { font-family: sans-serif; padding: 1rem; background: #f7f7f7; }
-  #calendar-wrapper { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; min-width: 600px; }
-  th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; vertical-align: top; }
-  th { background: #eee; }
-  td.empty { background: #fff; color: #ccc; }
-  td.available { background: #d4f4dd; color: #000; }
-  #refresh { display: block; margin: 1rem auto; padding: 0.5rem 1rem; }
-  td span { display: block; font-size: 0.8rem; margin-top: 0.2rem; }
+  body { font-family: sans-serif; margin: 20px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ccc; text-align: center; padding: 5px; }
+  th { background: #f0f0f0; }
+  .empty { color: #ccc; }
 </style>
 </head>
 <body>
-<h2 style="text-align:center;">スタジオ空きカレンダー</h2>
-<button id="refresh">更新</button>
-
-<div id="calendar-wrapper">
-  <table id="calendar">
-    <thead>
-      <tr>
-        <th>月</th><th>火</th><th>水</th><th>木</th>
-        <th>金</th><th>土</th><th>日</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+<h2>スタジオ空きカレンダー（貸切非表示）</h2>
+<table id="calendar">
+  <thead>
+    <tr>
+      <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th><th>日</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
 <script>
-async function loadCalendar() {
-  const res = await fetch("./data.json?nocache=" + new Date().getTime());
-  const events = await res.json();
+const DAYS_TO_SHOW = 10; // 今日から10日間
+const today = new Date();
 
-  // 今日から1ヶ月先まで（約4〜5週）
-  const today = new Date();
-  const endDate = new Date();
-  endDate.setDate(today.getDate() + 30);
+// JSON読み込み
+fetch('./data.json')
+  .then(r => r.json())
+  .then(data => {
+    // 貸切を除外して空きだけにする
+    const available = data.filter(d => !d.type.toLowerCase().includes('貸切'));
 
-  const filtered = events.filter(e => {
-    const d = new Date(e.date);
-    return d >= today && d <= endDate && e.type.includes('○');
-  });
+    // 日付ごとにまとめる
+    const byDate = {};
+    available.forEach(ev => {
+      if (!byDate[ev.date]) byDate[ev.date] = [];
+      byDate[ev.date].push(ev.type + ' (' + ev.source + ')');
+    });
 
-  const dayMap = {};
-  filtered.forEach(e => {
-    if (!dayMap[e.date]) dayMap[e.date] = [];
-    dayMap[e.date].push(e.type + " (" + e.source + ")");
-  });
-
-  const tbody = document.querySelector("#calendar tbody");
-  tbody.innerHTML = "";
-
-  // 月曜始まり
-  let start = new Date(today);
-  start.setDate(start.getDate() - start.getDay() + 1);
-
-  while (start <= endDate) {
-    const tr = document.createElement("tr");
-    for (let i = 0; i < 7; i++) {
-      const td = document.createElement("td");
-      const dStr = start.toISOString().slice(0,10);
-      td.innerHTML = `<strong>${start.getDate()}</strong>`;
-      if (dayMap[dStr]) {
-        dayMap[dStr].forEach(ev => {
-          const span = document.createElement("span");
-          span.textContent = ev;
-          td.appendChild(span);
-        });
-        td.className = "available";
-      } else {
-        td.className = "empty";
-      }
-      tr.appendChild(td);
-      start.setDate(start.getDate() + 1);
+    // カレンダー描画
+    const tbody = document.querySelector('#calendar tbody');
+    let date = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let row = document.createElement('tr');
+    
+    // 月曜始まりにするための空セル
+    let startDay = (date.getDay() + 6) % 7;
+    for (let i = 0; i < startDay; i++) {
+      let td = document.createElement('td');
+      td.className = 'empty';
+      row.appendChild(td);
     }
-    tbody.appendChild(tr);
-  }
-}
 
-document.getElementById("refresh").addEventListener("click", loadCalendar);
-loadCalendar();
+    for (let i = 0; i < DAYS_TO_SHOW; i++) {
+      let td = document.createElement('td');
+      const ymd = date.toISOString().slice(0,10);
+      td.innerHTML = date.getDate() + '<br>' + (byDate[ymd]?.join('<br>') || '×');
+      row.appendChild(td);
+
+      if ((date.getDay() + 6) % 7 === 6) { // 日曜で改行
+        tbody.appendChild(row);
+        row = document.createElement('tr');
+      }
+      date.setDate(date.getDate() + 1);
+    }
+    // 最後の行を追加
+    if (row.children.length > 0) tbody.appendChild(row);
+  })
+  .catch(e => {
+    console.error('JSON読み込みエラー:', e);
+  });
 </script>
 </body>
 </html>
