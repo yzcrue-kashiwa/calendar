@@ -2,81 +2,106 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>スタジオ空きカレンダー</title>
-
+<title>スタジオ予約カレンダー</title>
 <style>
-  body { font-family: sans-serif; padding: 1rem; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
-  th { background: #eee; }
-  .empty { color: #888; }
-  .Couleur { background:#ffdede; }
-  .Colore { background:#ddf; }
-  .Claris { background:#dfd; }
+  body { font-family: sans-serif; padding: 20px; }
+  table { border-collapse: collapse; width: 100%; max-width: 600px; }
+  th, td { border: 1px solid #ccc; text-align: center; padding: 8px; }
+  th { background: #f0f0f0; }
+  td.past { background: #eee; color: #999; }
+  td.available { background: #d4fcd4; cursor: pointer; }
 </style>
 </head>
 <body>
-<h2>スタジオ空きカレンダー</h2>
-<button onclick="loadCalendar()">更新</button>
+
+<h1>スタジオ予約カレンダー</h1>
 <table id="calendar">
   <thead>
     <tr>
-      <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th><th>日</th>
+      <th>月</th>
+      <th>火</th>
+      <th>水</th>
+      <th>木</th>
+      <th>金</th>
+      <th>土</th>
+      <th>日</th>
     </tr>
   </thead>
-  <tbody></tbody>
+  <tbody id="calendar-body">
+  </tbody>
 </table>
 
 <script>
-async function loadCalendar() {
-  const res = await fetch("./data.json?nocache=" + new Date().getTime());
-  const data = await res.json();
+// サンプルJSON（Pythonで作ったreservations.jsonの内容をここに貼る）
+const reservations = [
+  {"date":"2026-03-19","type":"1部○","source":"Couleur"},
+  {"date":"2026-03-19","type":"2部○","source":"Couleur"},
+  {"date":"2026-03-19","type":"1部○","source":"Claris"},
+  {"date":"2026-03-19","type":"2部○","source":"Claris"}
+];
 
-  const today = new Date();
-  const endDate = new Date();
-  endDate.setDate(today.getDate() + 30);
+// 今日の日付
+const today = new Date();
 
-  const filtered = data.filter(e => e.type.includes('○'));
+// 今月情報
+const year = today.getFullYear();
+const month = today.getMonth(); // 0始まり
 
-  const byDate = {};
-  filtered.forEach(e => {
-    if (!byDate[e.date]) byDate[e.date] = [];
-    byDate[e.date].push(e);
-  });
+// 月の初日と最終日
+const firstDay = new Date(year, month, 1);
+const lastDay = new Date(year, month + 1, 0);
 
-  const tbody = document.querySelector("#calendar tbody");
-  tbody.innerHTML = "";
-  
-  let cursor = new Date(today);
-  cursor.setDate(cursor.getDate() - ((cursor.getDay()+6)%7));
+// 曜日が月曜始まりになるよう調整
+const startDay = (firstDay.getDay() + 6) % 7;
 
-  while (cursor <= endDate) {
-    const tr = document.createElement("tr");
-    for (let i = 0; i < 7; i++) {
-      const td = document.createElement("td");
-      const key = cursor.toISOString().slice(0,10);
-      const list = byDate[key] || [];
+// カレンダー本体
+const tbody = document.getElementById("calendar-body");
+let tr = document.createElement("tr");
 
-      if (list.length) {
-        list.forEach(ev => {
-          const span = document.createElement("span");
-          span.textContent = `${ev.type} (${ev.source})`;
-          span.style.display = "block";
-          span.className = ev.source;
-          td.appendChild(span);
-        });
-      } else {
-        td.innerHTML = "<span class='empty'>空きなし</span>";
-      }
-      tr.appendChild(td);
-      cursor.setDate(cursor.getDate()+1);
+// 空セルを追加
+for (let i = 0; i < startDay; i++) {
+  const td = document.createElement("td");
+  tr.appendChild(td);
+}
+
+// 日付ループ
+for (let day = 1; day <= lastDay.getDate(); day++) {
+  const td = document.createElement("td");
+  const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+  // 過ぎた日はグレーアウト
+  const dateObj = new Date(year, month, day);
+  if (dateObj < today.setHours(0,0,0,0)) {
+    td.className = "past";
+    td.textContent = day;
+  } else {
+    // 予約がある日だけ表示
+    const dayReservations = reservations.filter(r => r.date === dateStr);
+    if (dayReservations.length > 0) {
+      td.className = "available";
+      td.innerHTML = `${day}<br>${dayReservations.map(r => r.type + " (" + r.source + ")").join("<br>")}`;
+    } else {
+      td.textContent = day;
     }
+  }
+
+  tr.appendChild(td);
+
+  // 1週間ごとに新しい行
+  if ((day + startDay) % 7 === 0) {
     tbody.appendChild(tr);
+    tr = document.createElement("tr");
   }
 }
 
-loadCalendar();
+// 残りのセルを追加
+if (tr.children.length > 0) {
+  while (tr.children.length < 7) {
+    const td = document.createElement("td");
+    tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
 </script>
 
 </body>
