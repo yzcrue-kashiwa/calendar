@@ -1,63 +1,159 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>空きカレンダー</title>
-<style>
-body { font-family: Arial, sans-serif; }
-table { border-collapse: collapse; width: 100%; max-width: 600px; margin: auto; }
-th, td { border: 1px solid #ccc; text-align: center; padding: 8px; }
-th { background-color: #f0f0f0; }
-td.past { background-color: #eee; color: #999; }
-td.available { background-color: #d0f0d0; }
-</style>
+  <meta charset="UTF-8">
+  <title>空きカレンダー</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      width: 14.2%;
+      height: 80px;
+      vertical-align: top;
+      padding: 4px;
+      font-size: 12px;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    .date {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .past {
+      background: #eee;
+      color: #999;
+    }
+
+    .event {
+      margin-top: 4px;
+      padding: 2px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .part1 {
+      background: #ffb3ff;
+    }
+
+    .part2 {
+      background: #b3c6ff;
+    }
+  </style>
 </head>
 <body>
 
-<h2 style="text-align:center;">予約空きカレンダー</h2>
-<div id="calendar"></div>
+<h2 id="title"></h2>
+
+<table id="calendar">
+  <thead>
+    <tr>
+      <th>月</th>
+      <th>火</th>
+      <th>水</th>
+      <th>木</th>
+      <th>金</th>
+      <th>土</th>
+      <th>日</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
 <script>
 const today = new Date();
+const year = today.getFullYear();
+const month = today.getMonth(); // 0始まり
 
-// JSON 読み込み
-async function loadData() {
-  const res = await fetch('data.json');
-  const events = await res.json();
-  return events;
-}
+document.getElementById("title").textContent =
+  `${year}年 ${month + 1}月`;
 
-// カレンダー描画
-function renderCalendar(events) {
-  const startDate = new Date();
-  const endDate = new Date();
-  endDate.setDate(startDate.getDate() + 10); // 今日〜10日間
+fetch("events.json")
+  .then(res => res.json())
+  .then(events => {
+    console.log("EVENTS:", events);
 
-  let html = '<table><tr>';
-  const weekdays = ['月','火','水','木','金','土','日'];
-  weekdays.forEach(day => html += `<th>${day}</th>`);
-  html += '</tr><tr>';
+    const tableBody = document.querySelector("#calendar tbody");
 
-  // 月曜始まりに調整
-  let current = new Date(startDate);
-  current.setDate(current.getDate() - (current.getDay() || 7) + 1);
+    const firstDay = new Date(year, month, 1);
+    const startDay = (firstDay.getDay() + 6) % 7; // 月曜始まり
 
-  while (current <= endDate) {
-    const dayEvents = events.filter(e => e.date === current.toISOString().slice(0,10));
-    const hasAvailable = dayEvents.length > 0;
+    const lastDate = new Date(year, month + 1, 0).getDate();
 
-    const cls = current < today ? 'past' : hasAvailable ? 'available' : '';
-    html += `<td class="${cls}">${current.getDate()}${hasAvailable ? '<br>○' : ''}</td>`;
+    let row = document.createElement("tr");
 
-    if (current.getDay() === 0) html += '</tr><tr>'; // 日曜で改行
-    current.setDate(current.getDate() + 1);
-  }
+    // 空白埋め
+    for (let i = 0; i < startDay; i++) {
+      row.appendChild(document.createElement("td"));
+    }
 
-  html += '</tr></table>';
-  document.getElementById('calendar').innerHTML = html;
-}
+    for (let day = 1; day <= lastDate; day++) {
+      const cell = document.createElement("td");
 
-loadData().then(events => renderCalendar(events));
+      const dateStr =
+        `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+      const dateDiv = document.createElement("div");
+      dateDiv.textContent = day;
+      dateDiv.className = "date";
+      cell.appendChild(dateDiv);
+
+      const cellDate = new Date(year, month, day);
+      if (cellDate < new Date().setHours(0,0,0,0)) {
+        cell.classList.add("past");
+      }
+
+      // ===== イベント表示 =====
+      const dayEvents = events.filter(e => e.date === dateStr);
+
+      dayEvents.forEach(e => {
+        if (e.status !== "available") return; // 空きだけ
+
+        const div = document.createElement("div");
+        div.className = "event";
+
+        if (e.part === "1部") {
+          div.classList.add("part1");
+          div.textContent = "1部 空き";
+        }
+
+        if (e.part === "2部") {
+          div.classList.add("part2");
+          div.textContent = "2部 空き";
+        }
+
+        cell.appendChild(div);
+      });
+
+      row.appendChild(cell);
+
+      if ((startDay + day) % 7 === 0) {
+        tableBody.appendChild(row);
+        row = document.createElement("tr");
+      }
+    }
+
+    tableBody.appendChild(row);
+  });
 </script>
+
 </body>
 </html>
