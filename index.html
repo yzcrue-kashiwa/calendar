@@ -1,158 +1,110 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>空きカレンダー</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
+<meta charset="UTF-8">
+<title>空きカレンダー</title>
 
-    h2 {
-      text-align: center;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-      margin: auto;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      width: 14.2%;
-      height: 80px;
-      vertical-align: top;
-      padding: 4px;
-      font-size: 12px;
-    }
-
-    th {
-      background: #f0f0f0;
-    }
-
-    .date {
-      font-weight: bold;
-      font-size: 14px;
-    }
-
-    .past {
-      background: #eee;
-      color: #999;
-    }
-
-    .event {
-      margin-top: 4px;
-      padding: 2px;
-      border-radius: 4px;
-      font-size: 11px;
-    }
-
-    .part1 {
-      background: #ffb3ff;
-    }
-
-    .part2 {
-      background: #b3c6ff;
-    }
-  </style>
+<style>
+body { font-family: sans-serif; text-align: center; }
+table { border-collapse: collapse; margin: auto; }
+th, td {
+  border: 1px solid #ccc;
+  width: 100px;
+  height: 80px;
+  vertical-align: top;
+}
+.past { background: #eee; color: #999; }
+.event { font-size: 12px; margin-top: 4px; }
+.part1 { color: #d100d1; }
+.part2 { color: #0000cc; }
+</style>
 </head>
+
 <body>
 
 <h2 id="title"></h2>
 
-<table id="calendar">
-  <thead>
-    <tr>
-      <th>月</th>
-      <th>火</th>
-      <th>水</th>
-      <th>木</th>
-      <th>金</th>
-      <th>土</th>
-      <th>日</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
+<table>
+<thead>
+<tr>
+<th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th><th>日</th>
+</tr>
+</thead>
+<tbody id="calendar"></tbody>
 </table>
 
 <script>
 const today = new Date();
 const year = today.getFullYear();
-const month = today.getMonth(); // 0始まり
+const month = today.getMonth();
 
 document.getElementById("title").textContent =
   `${year}年 ${month + 1}月`;
 
 fetch("events.json")
-  .then(res => res.json())
-  .then(events => {
-    console.log("EVENTS:", events);
+.then(res => res.json())
+.then(events => {
 
-    const tableBody = document.querySelector("#calendar tbody");
+  console.log("EVENTS:", events);
 
-    const firstDay = new Date(year, month, 1);
-    const startDay = (firstDay.getDay() + 6) % 7; // 月曜始まり
+  const cal = document.getElementById("calendar");
 
-    const lastDate = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1);
+  const start = (firstDay.getDay() + 6) % 7;
 
-    let row = document.createElement("tr");
+  const lastDate = new Date(year, month + 1, 0).getDate();
 
-    // 空白埋め
-    for (let i = 0; i < startDay; i++) {
-      row.appendChild(document.createElement("td"));
+  let row = document.createElement("tr");
+
+  for (let i = 0; i < start; i++) {
+    row.appendChild(document.createElement("td"));
+  }
+
+  for (let d = 1; d <= lastDate; d++) {
+
+    const cell = document.createElement("td");
+
+    const dateStr =
+      `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
+    cell.innerHTML = `<b>${d}</b>`;
+
+    const cellDate = new Date(year, month, d);
+    if (cellDate < new Date().setHours(0,0,0,0)) {
+      cell.classList.add("past");
     }
 
-    for (let day = 1; day <= lastDate; day++) {
-      const cell = document.createElement("td");
+    const dayEvents = events.filter(e => e.date === dateStr);
 
-      const dateStr =
-        `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    dayEvents.forEach(e => {
+      if (e.status !== "available") return;
 
-      const dateDiv = document.createElement("div");
-      dateDiv.textContent = day;
-      dateDiv.className = "date";
-      cell.appendChild(dateDiv);
+      const div = document.createElement("div");
+      div.className = "event";
 
-      const cellDate = new Date(year, month, day);
-      if (cellDate < new Date().setHours(0,0,0,0)) {
-        cell.classList.add("past");
+      if (e.part === "1部") {
+        div.classList.add("part1");
+        div.textContent = "1部 空き";
       }
 
-      // ===== イベント表示 =====
-      const dayEvents = events.filter(e => e.date === dateStr);
-
-      dayEvents.forEach(e => {
-        if (e.status !== "available") return; // 空きだけ
-
-        const div = document.createElement("div");
-        div.className = "event";
-
-        if (e.part === "1部") {
-          div.classList.add("part1");
-          div.textContent = "1部 空き";
-        }
-
-        if (e.part === "2部") {
-          div.classList.add("part2");
-          div.textContent = "2部 空き";
-        }
-
-        cell.appendChild(div);
-      });
-
-      row.appendChild(cell);
-
-      if ((startDay + day) % 7 === 0) {
-        tableBody.appendChild(row);
-        row = document.createElement("tr");
+      if (e.part === "2部") {
+        div.classList.add("part2");
+        div.textContent = "2部 空き";
       }
+
+      cell.appendChild(div);
+    });
+
+    row.appendChild(cell);
+
+    if ((start + d) % 7 === 0) {
+      cal.appendChild(row);
+      row = document.createElement("tr");
     }
+  }
 
-    tableBody.appendChild(row);
-  });
+  cal.appendChild(row);
+});
 </script>
 
 </body>
