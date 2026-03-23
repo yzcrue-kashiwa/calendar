@@ -29,6 +29,11 @@ def fetch_month(year, month):
     }
 
     res = requests.post(URL, data=payload)
+# ★ デバッグ
+print("==== HTML START ====")
+print(res.text[:2000])
+print("==== HTML END ====")
+
     soup = BeautifulSoup(res.text, "html.parser")
 
     events = []
@@ -76,4 +81,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-print(res.text[:2000])
