@@ -1,12 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import datetime
 
 URL = "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"
 
 OUTPUT_FILE = "events.json"
 
 VALID_PARTS = ["1部", "2部"]
+
 
 def fetch_month(year, month):
     payload = {
@@ -32,21 +34,30 @@ def fetch_month(year, month):
 
     events = []
 
-    # 各日付セル
-    days = soup.select("td")
+    # カレンダーの全セル取得
+    cells = soup.select("table.xo-month td")
 
-    for day in days:
-        date_attr = day.get("data-date")
-        if not date_attr:
+    for cell in cells:
+        text = cell.get_text(separator=" ").replace("　", "").strip()
+
+        # 日付取得（セル内の数字）
+        day_number = None
+        for t in cell.stripped_strings:
+            if t.isdigit():
+                day_number = int(t)
+                break
+
+        if not day_number:
             continue
 
-        text = day.get_text(separator=" ").replace("　", "").strip()
+        # 日付生成
+        date_str = f"{year}-{month:02d}-{day_number:02d}"
 
-        # 1部・2部のみ抽出
+        # 部チェック
         for part in VALID_PARTS:
             if part in text and "○" in text:
                 events.append({
-                    "date": date_attr,
+                    "date": date_str,
                     "type": f"{part}○",
                     "source": "Couleur"
                 })
@@ -57,9 +68,12 @@ def fetch_month(year, month):
 def main():
     all_events = []
 
-    # とりあえず今月
     events = fetch_month(2026, 3)
     all_events.extend(events)
+
+    # 重複削除（超重要）
+    unique = { (e["date"], e["type"], e["source"]): e for e in all_events }
+    all_events = list(unique.values())
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
