@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 import json
 
 URL = "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"
-
 OUTPUT_FILE = "events.json"
 
 VALID_PARTS = ["1部", "2部"]
@@ -29,39 +28,50 @@ def fetch_month(year, month):
     }
 
     res = requests.post(URL, data=payload)
-# ★ デバッグ
-print("==== HTML START ====")
-print(res.text[:2000])
-print("==== HTML END ====")
+
+    # ===== デバッグここから =====
+    print("====== HTML CHECK ======")
+    print(res.text[:2000])
+    print("====== END ======")
+
+    if "1部" in res.text:
+        print("✅ 1部 見つかった！")
+    else:
+        print("❌ 1部 見つからない")
+
+    # ===== デバッグここまで =====
 
     soup = BeautifulSoup(res.text, "html.parser")
 
     events = []
 
-    cells = soup.select("table.xo-month td")
+    cells = soup.select("td")
 
     for cell in cells:
-        # 日付
-        day_num = cell.find("span", class_="day")
-        if not day_num:
+        text = cell.get_text()
+
+        # ○が含まれるセルだけチェック
+        if "○" in text:
+            print("---- EVENT CELL ----")
+            print(cell)
+            print("--------------------")
+
+        # 日付取得
+        day_tag = cell.find("span", class_="day")
+        if not day_tag:
             continue
 
-        day = day_num.text.strip()
+        day = day_tag.text.strip()
         date_str = f"{year}-{month:02d}-{int(day):02d}"
 
-        # イベント（←ここが重要）
-        event_titles = cell.select(".xo-event-title")
-
-        for e in event_titles:
-            text = e.text.replace("　", "").strip()
-
-            for part in VALID_PARTS:
-                if part in text and "○" in text:
-                    events.append({
-                        "date": date_str,
-                        "type": f"{part}○",
-                        "source": "Couleur"
-                    })
+        # 部チェック
+        for part in VALID_PARTS:
+            if part in text and "○" in text:
+                events.append({
+                    "date": date_str,
+                    "type": f"{part}○",
+                    "source": "Couleur"
+                })
 
     return events
 
@@ -76,7 +86,9 @@ def main():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
+    print("=================================")
     print("Saved", len(all_events), "events")
+    print("=================================")
 
 
 if __name__ == "__main__":
