@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import json
 
-# 🔥 対応サイト
+# 🔥 対象サイト
 SITES = [
     {
         "name": "couleur",
@@ -18,6 +18,21 @@ SITES = [
 ]
 
 
+# 🔥 文字正規化（超重要）
+def normalize(text):
+    return (
+        text.replace("⚪︎", "○")
+            .replace(" ", "")
+            .replace("　", "")
+            .strip()
+    )
+
+
+# 🔥 ○判定
+def is_available(text):
+    return "○" in text
+
+
 def fetch_calendar(site, year, month):
     payload = {
         "action": "xo_event_calendar_month",
@@ -26,10 +41,16 @@ def fetch_calendar(site, year, month):
         "event": "1"
     }
 
-    res = requests.post(site["url"], data=payload)
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": site["url"].replace("/wp-admin/admin-ajax.php", "/"),
+        "Origin": site["url"].split("/wp-admin")[0]
+    }
+
+    res = requests.post(site["url"], data=payload, headers=headers)
 
     print(f"🌐 {site['name']} STATUS:", res.status_code)
-    print(f"LEN:", len(res.text))
+    print("LEN:", len(res.text))
 
     return res.text
 
@@ -51,7 +72,6 @@ def parse_calendar(html, year, month, site_name):
         for i, d in enumerate(days):
             day_text = d.text.strip()
 
-            # 数字以外スキップ
             if not day_text.isdigit():
                 continue
 
@@ -68,12 +88,14 @@ def parse_calendar(html, year, month, site_name):
 
             date_str = dt.strftime("%Y-%m-%d")
 
-            # --- 1部 ---
+            # ---------- 1部 ----------
             if i < len(first_events):
-                text = first_events[i].text.strip()
+                raw = first_events[i].text
+                text = normalize(raw)
+
                 print(f"[{site_name} 1部] {date_str} -> '{text}'")
 
-                if "1部○" in text:
+                if "1部" in text and is_available(text):
                     events.append({
                         "site": site_name,
                         "date": date_str,
@@ -82,12 +104,14 @@ def parse_calendar(html, year, month, site_name):
                     })
                     print(f"✅ ADD {site_name} 1部:", date_str)
 
-            # --- 2部 ---
+            # ---------- 2部 ----------
             if i < len(second_events):
-                text = second_events[i].text.strip()
+                raw = second_events[i].text
+                text = normalize(raw)
+
                 print(f"[{site_name} 2部] {date_str} -> '{text}'")
 
-                if "2部○" in text:
+                if "2部" in text and is_available(text):
                     events.append({
                         "site": site_name,
                         "date": date_str,
@@ -119,7 +143,7 @@ def main():
     print("📊 TOTAL events:", len(all_events))
     print("================================")
 
-    # 保存
+    # 🔥 保存（Pages用）
     with open("events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
