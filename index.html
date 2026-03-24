@@ -16,8 +16,8 @@ table {
 
 td {
   border: 1px solid #ccc;
-  width: 100px;
-  height: 80px;
+  width: 110px;
+  height: 90px;
   vertical-align: top;
   padding: 5px;
 }
@@ -30,12 +30,20 @@ td {
   background-color: #eee;
   color: #999;
 }
+
+.site-couleur {
+  color: purple;
+}
+
+.site-fuel {
+  color: blue;
+}
 </style>
 </head>
 
 <body>
 
-<h2>予約カレンダー</h2>
+<h2>予約カレンダー（全店舗）</h2>
 <table id="calendar"></table>
 
 <script>
@@ -67,7 +75,6 @@ fetch("./events.json?v=" + new Date().getTime())
       let cellClass = "";
       let content = `<strong>${day}</strong><br>`;
 
-      // 過去日
       if (dateObj < new Date().setHours(0,0,0,0)) {
         cellClass = "past";
       }
@@ -75,7 +82,8 @@ fetch("./events.json?v=" + new Date().getTime())
       const dayEvents = events.filter(e => e.date === dateStr);
 
       dayEvents.forEach(e => {
-        content += e.part + "<br>";
+        const siteClass = "site-" + e.site;
+        content += `<span class="${siteClass}">${e.site} ${e.part}</span><br>`;
         cellClass = "available";
       });
 
@@ -88,11 +96,8 @@ fetch("./events.json?v=" + new Date().getTime())
 
     html += "</tr>";
     table.innerHTML = html;
-
   })
-  .catch(err => {
-    console.error("❌ fetch失敗:", err);
-  });
+  .catch(err => console.error(err));
 </script>
 
 </body>
