@@ -14,127 +14,137 @@ h1 {
   text-align: center;
 }
 
+#info {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
+}
+
 #calendar {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .day {
   border: 1px solid #ccc;
   padding: 8px;
-  min-height: 80px;
-  font-size: 14px;
-  position: relative;
+  min-height: 90px;
 }
 
 .date {
   font-weight: bold;
+  margin-bottom: 4px;
 }
 
-/* 土日カラー */
-.sat {
-  background-color: #e6f0ff;
-}
-
-.sun {
-  background-color: #ffe6e6;
-}
+/* 土日 */
+.sat { background: #e6f0ff; }
+.sun { background: #ffe6e6; }
 
 /* イベント */
 .event {
-  margin-top: 4px;
+  margin-top: 3px;
   padding: 2px 4px;
   border-radius: 4px;
   font-size: 12px;
 }
 
-.couleur {
-  background: #cb0cc8;
-  color: #fff;
-}
-
-.claris {
-  background: #0000cb;
-  color: #fff;
-}
-
-.fuel {
-  background: #2cb4ad;
-  color: #fff;
-}
+.couleur { background: #cb0cc8; color:#fff; }
+.claris  { background: #0000cb; color:#fff; }
+.fuel    { background: #2cb4ad; color:#fff; }
 </style>
 </head>
 
 <body>
 
-<h1>予約カレンダー</h1>
+<h1>予約カレンダー（直近10日）</h1>
 
+<div id="info"></div>
 <div id="calendar"></div>
 
 <script>
-const YEAR = 2026;
-const MONTH = 4;
-
 const calendar = document.getElementById("calendar");
+const info = document.getElementById("info");
 
-// 曜日（0=日,6=土）
-function getDayClass(year, month, day) {
-  const d = new Date(year, month - 1, day);
+// 今日
+const today = new Date();
+
+// 日付フォーマット
+function formatDate(d) {
+  return d.toISOString().slice(0,10);
+}
+
+// 表示用
+function formatJP(d) {
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+// 土日判定
+function getDayClass(d) {
   const w = d.getDay();
-
   if (w === 0) return "sun";
   if (w === 6) return "sat";
   return "";
 }
 
-// カレンダー枠作成
+// カレンダー生成（10日分）
 function createCalendar(events) {
 
   calendar.innerHTML = "";
 
-  const lastDay = new Date(YEAR, MONTH, 0).getDate();
+  for (let i = 0; i < 10; i++) {
 
-  for (let d = 1; d <= lastDay; d++) {
+    const d = new Date();
+    d.setDate(today.getDate() + i);
 
-    const dateStr = `${YEAR}-${String(MONTH).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const dateStr = formatDate(d);
 
-    const dayDiv = document.createElement("div");
-    dayDiv.className = "day " + getDayClass(YEAR, MONTH, d);
+    const div = document.createElement("div");
+    div.className = "day " + getDayClass(d);
 
     const dateEl = document.createElement("div");
     dateEl.className = "date";
-    dateEl.textContent = d;
+    dateEl.textContent = formatJP(d);
 
-    dayDiv.appendChild(dateEl);
+    div.appendChild(dateEl);
 
-    // イベント追加
+    // イベント
     events
       .filter(e => e.date === dateStr)
       .forEach(e => {
-
         const ev = document.createElement("div");
         ev.className = `event ${e.site}`;
         ev.textContent = `${e.site} ${e.part}`;
-
-        dayDiv.appendChild(ev);
+        div.appendChild(ev);
       });
 
-    calendar.appendChild(dayDiv);
+    calendar.appendChild(div);
   }
+}
+
+// 更新時間表示
+function showInfo() {
+  const now = new Date();
+
+  info.innerHTML = `
+    今日: ${formatJP(today)}　
+    更新: ${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}
+  `;
 }
 
 // データ取得
 fetch("https://yzcrue-kashiwa.github.io/calendar/events.json")
   .then(res => res.json())
   .then(data => {
-    console.log("EVENTS:", data);
+    console.log(data);
     createCalendar(data);
+    showInfo();
   })
   .catch(err => {
-    console.error("ERROR:", err);
+    console.error(err);
   });
 
 </script>
