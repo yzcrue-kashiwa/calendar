@@ -2,102 +2,130 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>予約カレンダー</title>
+<title>空きカレンダー</title>
 
 <style>
 body {
   font-family: sans-serif;
-  padding: 20px;
 }
 
-table {
-  border-collapse: collapse;
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
 }
 
-td {
+.day {
   border: 1px solid #ccc;
-  width: 110px;
-  height: 90px;
-  vertical-align: top;
-  padding: 5px;
-}
-
-.available {
-  background-color: #c8f7c5;
+  min-height: 80px;
+  padding: 4px;
+  font-size: 12px;
 }
 
 .past {
-  background-color: #eee;
+  background: #eee;
   color: #999;
 }
 
-.site-couleur {
-  color: purple;
+.sat {
+  background: #e6f0ff;
 }
 
-.site-fuel {
-  color: blue;
+.sun {
+  background: #ffe6e6;
+}
+
+.holiday {
+  background: #ffcccc;
+}
+
+.date {
+  font-weight: bold;
+}
+
+.event {
+  margin-top: 4px;
+  font-size: 11px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>予約カレンダー（全店舗）</h2>
-<table id="calendar"></table>
+<h2>空きカレンダー</h2>
+<div class="calendar" id="calendar"></div>
 
 <script>
-const today = new Date();
-const year = today.getFullYear();
-const month = today.getMonth();
+const HOLIDAYS = [
+  "2026-01-01",
+  "2026-02-11",
+  "2026-02-23"
+  // 必要なら追加
+];
 
-fetch("./events.json?v=" + new Date().getTime())
+fetch("events.json")
   .then(res => res.json())
   .then(events => {
 
-    console.log("取得イベント:", events);
+    const cal = document.getElementById("calendar");
 
-    const table = document.getElementById("calendar");
+    const today = new Date();
 
-    const firstDay = new Date(year, month, 1).getDay();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+
+    const firstDay = new Date(year, month, 1);
     const lastDate = new Date(year, month + 1, 0).getDate();
 
-    let html = "<tr>";
+    // 月曜始まり調整
+    let startDay = firstDay.getDay();
+    startDay = (startDay === 0) ? 6 : startDay - 1;
 
-    for (let i = 0; i < firstDay; i++) {
-      html += "<td></td>";
+    // 空白
+    for (let i = 0; i < startDay; i++) {
+      cal.innerHTML += `<div></div>`;
     }
 
-    for (let day = 1; day <= lastDate; day++) {
-      const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-      const dateObj = new Date(year, month, day);
+    for (let d = 1; d <= lastDate; d++) {
+      const date = new Date(year, month, d);
+      const yyyy = date.getFullYear();
+      const mm = String(month + 1).padStart(2, "0");
+      const dd = String(d).padStart(2, "0");
 
-      let cellClass = "";
-      let content = `<strong>${day}</strong><br>`;
+      const dateStr = `${yyyy}-${mm}-${dd}`;
 
-      if (dateObj < new Date().setHours(0,0,0,0)) {
-        cellClass = "past";
+      let cls = "day";
+
+      // 過去日
+      if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+        cls += " past";
+      }
+
+      // 曜日
+      const day = date.getDay();
+
+      if (day === 6) cls += " sat";
+      if (day === 0) cls += " sun";
+
+      // 祝日
+      if (HOLIDAYS.includes(dateStr)) {
+        cls += " holiday";
       }
 
       const dayEvents = events.filter(e => e.date === dateStr);
 
+      let html = `<div class="${cls}">`;
+      html += `<div class="date">${d}</div>`;
+
       dayEvents.forEach(e => {
-        const siteClass = "site-" + e.site;
-        content += `<span class="${siteClass}">${e.site} ${e.part}</span><br>`;
-        cellClass = "available";
+        html += `<div class="event">${e.site} ${e.part}</div>`;
       });
 
-      html += `<td class="${cellClass}">${content}</td>`;
+      html += `</div>`;
 
-      if ((firstDay + day) % 7 === 0) {
-        html += "</tr><tr>";
-      }
+      cal.innerHTML += html;
     }
-
-    html += "</tr>";
-    table.innerHTML = html;
-  })
-  .catch(err => console.error(err));
+  });
 </script>
 
 </body>
