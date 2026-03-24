@@ -136,4 +136,9 @@ def main():
     for path in paths:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(all
+            json.dump(all_events, f, ensure_ascii=False, indent=2)
+        print(f"💾 saved: {path}")
+
+
+if __name__ == "__main__":
+    main()
