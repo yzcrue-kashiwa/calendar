@@ -5,9 +5,7 @@
 <title>空きカレンダー</title>
 
 <style>
-body {
-  font-family: sans-serif;
-}
+body { font-family: sans-serif; }
 
 .calendar {
   display: grid;
@@ -22,110 +20,84 @@ body {
   font-size: 12px;
 }
 
-.past {
-  background: #eee;
-  color: #999;
-}
+.past { background: #eee; color: #999; }
+.sat { background: #e6f0ff; }
+.sun { background: #ffe6e6; }
 
-.sat {
-  background: #e6f0ff;
-}
-
-.sun {
-  background: #ffe6e6;
-}
-
-.holiday {
-  background: #ffcccc;
-}
-
-.date {
-  font-weight: bold;
-}
+.date { font-weight: bold; }
 
 .event {
-  margin-top: 4px;
   font-size: 11px;
+  margin-top: 4px;
 }
+
+/* 店舗カラー */
+.couleur { color: blue; }
+.claris { color: green; }
+.fuel { color: orange; }
+
 </style>
 </head>
 
 <body>
 
-<h2>コローレ系列 空きカレンダー クルール・フーエル</h2>
+<h2>コローレ系列　予約空きカレンダー</h2>
 <div class="calendar" id="calendar"></div>
 
 <script>
-const HOLIDAYS = [
-  "2026-01-01",
-  "2026-02-11",
-  "2026-02-23"
-  // 必要なら追加
-];
-
 fetch("events.json")
-  .then(res => res.json())
-  .then(events => {
+.then(res => res.json())
+.then(events => {
 
-    const cal = document.getElementById("calendar");
+  const cal = document.getElementById("calendar");
+  const today = new Date();
 
-    const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
 
-    const year = today.getFullYear();
-    const month = today.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDate = new Date(year, month + 1, 0).getDate();
 
-    const firstDay = new Date(year, month, 1);
-    const lastDate = new Date(year, month + 1, 0).getDate();
+  let startDay = firstDay.getDay();
+  startDay = (startDay === 0) ? 6 : startDay - 1;
 
-    // 月曜始まり調整
-    let startDay = firstDay.getDay();
-    startDay = (startDay === 0) ? 6 : startDay - 1;
+  for (let i = 0; i < startDay; i++) {
+    cal.innerHTML += `<div></div>`;
+  }
 
-    // 空白
-    for (let i = 0; i < startDay; i++) {
-      cal.innerHTML += `<div></div>`;
+  for (let d = 1; d <= lastDate; d++) {
+
+    const date = new Date(year, month, d);
+    const yyyy = date.getFullYear();
+    const mm = String(month + 1).padStart(2, "0");
+    const dd = String(d).padStart(2, "0");
+
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+
+    let cls = "day";
+
+    if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+      cls += " past";
     }
 
-    for (let d = 1; d <= lastDate; d++) {
-      const date = new Date(year, month, d);
-      const yyyy = date.getFullYear();
-      const mm = String(month + 1).padStart(2, "0");
-      const dd = String(d).padStart(2, "0");
+    const day = date.getDay();
+    if (day === 6) cls += " sat";
+    if (day === 0) cls += " sun";
 
-      const dateStr = `${yyyy}-${mm}-${dd}`;
+    const dayEvents = events.filter(e => e.date === dateStr);
 
-      let cls = "day";
+    let html = `<div class="${cls}">`;
+    html += `<div class="date">${d}</div>`;
 
-      // 過去日
-      if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
-        cls += " past";
-      }
+    dayEvents.forEach(e => {
+      html += `<div class="event ${e.site}">${e.site} ${e.part}</div>`;
+    });
 
-      // 曜日
-      const day = date.getDay();
+    html += `</div>`;
+    cal.innerHTML += html;
+  }
 
-      if (day === 6) cls += " sat";
-      if (day === 0) cls += " sun";
-
-      // 祝日
-      if (HOLIDAYS.includes(dateStr)) {
-        cls += " holiday";
-      }
-
-      const dayEvents = events.filter(e => e.date === dateStr);
-
-      let html = `<div class="${cls}">`;
-      html += `<div class="date">${d}</div>`;
-
-      dayEvents.forEach(e => {
-        html += `<div class="event">${e.site} ${e.part}</div>`;
-      });
-
-      html += `</div>`;
-
-      cal.innerHTML += html;
-    }
-  });
+});
 </script>
 
 </body>
