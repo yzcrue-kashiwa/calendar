@@ -22,6 +22,7 @@ def clean(text):
             .strip()
     )
 
+# 🔥 取得（User-Agent付き）
 def fetch_month(site, year, month):
     payload = {
         "action": "xo_event_calendar_month",
@@ -34,8 +35,17 @@ def fetch_month(site, year, month):
         "is_locale": 1
     }
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+
     try:
-        res = requests.post(site["url"], data=payload, timeout=10)
+        res = requests.post(
+            site["url"],
+            data=payload,
+            headers=headers,
+            timeout=10
+        )
         res.raise_for_status()
         return res.text
     except Exception as e:
@@ -43,6 +53,7 @@ def fetch_month(site, year, month):
         return None
 
 
+# 🔥 パース
 def parse(html, year, month):
     soup = BeautifulSoup(html, "html.parser")
     results = []
@@ -104,6 +115,7 @@ def parse(html, year, month):
     return results
 
 
+# 🔥 メイン処理
 def main():
     today = datetime.now()
     year = today.year
@@ -119,20 +131,19 @@ def main():
             continue
 
         events = parse(html, year, month)
-
         print(f"📥 取得イベント数: {len(events)}")
 
-        # 🔥 絶対extend使う（上書き禁止）
+        # 🔥 上書きじゃなく追加
         all_events.extend(events)
 
     print("================================")
     print(f"📊 FINAL events: {len(all_events)}")
-    print(all_events)  # ← 中身確認
+    print(all_events)
     print("================================")
 
-    # 🔥 空だったら強制エラー（気づける）
+    # ⚠️ 0件チェック
     if len(all_events) == 0:
-        print("⚠️ WARNING: イベント0件！")
+        print("⚠️ WARNING: イベント0件！（取得失敗の可能性）")
 
     # 保存
     os.makedirs("calendar", exist_ok=True)
