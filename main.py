@@ -36,7 +36,10 @@ def fetch_month(site, year, month):
     }
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://couleur.studio-colore.tokyo/",
+        "Origin": "https://couleur.studio-colore.tokyo",
+        "Content-Type": "application/x-www-form-urlencoded"
     }
 
     try:
@@ -46,8 +49,13 @@ def fetch_month(site, year, month):
             headers=headers,
             timeout=10
         )
+
+        print("STATUS:", res.status_code)
+        print("LEN:", len(res.text))  # ← これ超重要
+
         res.raise_for_status()
         return res.text
+
     except Exception as e:
         print(f"❌ Fetch error: {e}")
         return None
