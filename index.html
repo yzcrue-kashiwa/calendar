@@ -18,31 +18,37 @@ h1 {
   text-align: center;
   margin-bottom: 10px;
   font-size: 14px;
-  color: #555;
 }
 
 #calendar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 8px;
   max-width: 900px;
   margin: 0 auto;
 }
 
+/* 曜日ヘッダー */
+.header {
+  font-weight: bold;
+  text-align: center;
+}
+
+/* 日付 */
 .day {
   border: 1px solid #ccc;
-  padding: 8px;
   min-height: 90px;
+  padding: 6px;
 }
 
-.date {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
-/* 土日 */
+/* 土日色 */
 .sat { background: #e6f0ff; }
 .sun { background: #ffe6e6; }
+
+/* 日付数字 */
+.date {
+  font-weight: bold;
+}
 
 /* イベント */
 .event {
@@ -60,8 +66,7 @@ h1 {
 
 <body>
 
-<h1>予約カレンダー（直近10日）</h1>
-
+<h1>直近10日 空きカレンダー</h1>
 <div id="info"></div>
 <div id="calendar"></div>
 
@@ -72,7 +77,7 @@ const info = document.getElementById("info");
 // 今日
 const today = new Date();
 
-// 日付フォーマット
+// YYYY-MM-DD
 function formatDate(d) {
   return d.toISOString().slice(0,10);
 }
@@ -82,7 +87,13 @@ function formatJP(d) {
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
 
-// 土日判定
+// 月曜始まり変換
+function getWeekIndex(d) {
+  let w = d.getDay(); // 0=日
+  return (w === 0) ? 6 : w - 1; // 月=0
+}
+
+// 土日色
 function getDayClass(d) {
   const w = d.getDay();
   if (w === 0) return "sun";
@@ -90,11 +101,27 @@ function getDayClass(d) {
   return "";
 }
 
-// カレンダー生成（10日分）
+// メイン描画
 function createCalendar(events) {
 
   calendar.innerHTML = "";
 
+  // 曜日ヘッダー（月始まり）
+  const days = ["月","火","水","木","金","土","日"];
+  days.forEach(d => {
+    const el = document.createElement("div");
+    el.className = "header";
+    el.textContent = d;
+    calendar.appendChild(el);
+  });
+
+  // 最初の日の位置調整
+  const startIndex = getWeekIndex(today);
+  for (let i = 0; i < startIndex; i++) {
+    calendar.appendChild(document.createElement("div"));
+  }
+
+  // 10日分
   for (let i = 0; i < 10; i++) {
 
     const d = new Date();
@@ -111,7 +138,7 @@ function createCalendar(events) {
 
     div.appendChild(dateEl);
 
-    // イベント
+    // 🔥 ここが今回の本体（10日分の○）
     events
       .filter(e => e.date === dateStr)
       .forEach(e => {
@@ -125,7 +152,7 @@ function createCalendar(events) {
   }
 }
 
-// 更新時間表示
+// 情報表示
 function showInfo() {
   const now = new Date();
 
@@ -139,8 +166,17 @@ function showInfo() {
 fetch("https://yzcrue-kashiwa.github.io/calendar/events.json")
   .then(res => res.json())
   .then(data => {
-    console.log(data);
-    createCalendar(data);
+
+    // 🔥 10日分だけ抽出
+    const filtered = data.filter(e => {
+      const d = new Date(e.date);
+      const diff = (d - today) / (1000*60*60*24);
+      return diff >= 0 && diff < 10;
+    });
+
+    console.log("10日分:", filtered);
+
+    createCalendar(filtered);
     showInfo();
   })
   .catch(err => {
