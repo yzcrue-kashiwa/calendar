@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 
 # =========================
-# 設定
+# サイト設定
 # =========================
 
 SITES = [
@@ -79,7 +79,7 @@ def fetch_site(site):
         return []
 
 # =========================
-# パース
+# パース（最重要）
 # =========================
 
 def parse_html(html, site_name, year, month):
@@ -108,37 +108,40 @@ def parse_html(html, site_name, year, month):
 
         date_str = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
 
-        text = normalize(td.get_text())
+        # 👇 ここが最重要（分解して取得）
+        texts = [normalize(t) for t in td.stripped_strings]
 
         # デバッグ
-        # print(site_name, date_str, text)
+        print(site_name, date_str, texts)
 
         # -------------------------
-        # 判定（超重要）
+        # 判定（強化版）
         # -------------------------
-        if "1部○" in text:
-            events.append({
-                "site": site_name,
-                "date": date_str,
-                "part": "1部",
-                "status": "available"
-            })
-            print(f"✅ {site_name} 1部: {date_str}")
+        for t in texts:
 
-        if "2部○" in text:
-            events.append({
-                "site": site_name,
-                "date": date_str,
-                "part": "2部",
-                "status": "available"
-            })
-            print(f"✅ {site_name} 2部: {date_str}")
+            if "1部○" in t:
+                events.append({
+                    "site": site_name,
+                    "date": date_str,
+                    "part": "1部",
+                    "status": "available"
+                })
+                print(f"✅ {site_name} 1部: {date_str}")
+
+            if "2部○" in t:
+                events.append({
+                    "site": site_name,
+                    "date": date_str,
+                    "part": "2部",
+                    "status": "available"
+                })
+                print(f"✅ {site_name} 2部: {date_str}")
 
     print(f"📦 {site_name} events:", len(events))
     return events
 
 # =========================
-# メイン処理
+# メイン
 # =========================
 
 def main():
@@ -159,7 +162,7 @@ def main():
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
-    print("💾 saved events.json")
+    print("💾 saved events.json & docs/events.json")
 
 # =========================
 
