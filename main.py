@@ -12,7 +12,6 @@ SITES = [
     }
 ]
 
-# 🔥 文字ゆらぎ除去
 def clean(text):
     return (
         text.replace("\n", "")
@@ -22,7 +21,6 @@ def clean(text):
             .strip()
     )
 
-# 🔥 取得（User-Agent付き）
 def fetch_month(site, year, month):
     payload = {
         "action": "xo_event_calendar_month",
@@ -43,15 +41,10 @@ def fetch_month(site, year, month):
     }
 
     try:
-        res = requests.post(
-            site["url"],
-            data=payload,
-            headers=headers,
-            timeout=10
-        )
+        res = requests.post(site["url"], data=payload, headers=headers, timeout=10)
 
         print("STATUS:", res.status_code)
-        print("LEN:", len(res.text))  # ← これ超重要
+        print("LEN:", len(res.text))
 
         res.raise_for_status()
         return res.text
@@ -61,7 +54,6 @@ def fetch_month(site, year, month):
         return None
 
 
-# 🔥 パース
 def parse(html, year, month):
     soup = BeautifulSoup(html, "html.parser")
     results = []
@@ -85,13 +77,9 @@ def parse(html, year, month):
             day = int(day_text)
             date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
 
-            # ---- 1部 ----
+            # 1部
             try:
-                raw1 = event_tables[0].select("td")[i].text
-                t1 = clean(raw1)
-
-                print(f"[DEBUG 1部] {date} -> '{t1}'")
-
+                t1 = clean(event_tables[0].select("td")[i].text)
                 if "1部○" in t1:
                     print(f"✅ ADD 1部: {date}")
                     results.append({
@@ -99,16 +87,12 @@ def parse(html, year, month):
                         "part": "1部",
                         "status": "available"
                     })
-            except Exception as e:
-                print("1部 error:", e)
+            except:
+                pass
 
-            # ---- 2部 ----
+            # 2部
             try:
-                raw2 = event_tables[1].select("td")[i].text
-                t2 = clean(raw2)
-
-                print(f"[DEBUG 2部] {date} -> '{t2}'")
-
+                t2 = clean(event_tables[1].select("td")[i].text)
                 if "2部○" in t2:
                     print(f"✅ ADD 2部: {date}")
                     results.append({
@@ -116,14 +100,13 @@ def parse(html, year, month):
                         "part": "2部",
                         "status": "available"
                     })
-            except Exception as e:
-                print("2部 error:", e)
+            except:
+                pass
 
     print(f"📦 parse結果: {len(results)}件")
     return results
 
 
-# 🔥 メイン処理
 def main():
     today = datetime.now()
     year = today.year
@@ -139,27 +122,23 @@ def main():
             continue
 
         events = parse(html, year, month)
-        print(f"📥 取得イベント数: {len(events)}")
-
-        # 🔥 上書きじゃなく追加
         all_events.extend(events)
 
     print("================================")
     print(f"📊 FINAL events: {len(all_events)}")
-    print(all_events)
     print("================================")
 
-    # ⚠️ 0件チェック
-    if len(all_events) == 0:
-        print("⚠️ WARNING: イベント0件！（取得失敗の可能性）")
+    # 🔥 保存（両方に書く）
+    paths = [
+        "calendar/events.json",
+        "docs/calendar/events.json"
+    ]
 
-    # 保存
-    os.makedirs("calendar", exist_ok=True)
-
-    with open("calendar/events.json", "w", encoding="utf-8") as f:
-        json.dump(all_events, f, ensure_ascii=False, indent=2)
-
-    print("💾 JSON書き込み完了")
+    for path in paths:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(all_events, f, ensure_ascii=False, indent=2)
+        print(f"💾 saved: {path}")
 
 
 if __name__ == "__main__":
