@@ -1,139 +1,143 @@
-import requests
-from bs4 import BeautifulSoup
-import json
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>予約カレンダー</title>
 
-YEAR = 2026
-MONTH = 3
+<style>
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
 
-SITES = [
-    {
-        "name": "couleur",
-        "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"
-    },
-    {
-        "name": "claris",
-        "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php"
-    },
-    {
-        "name": "fuel",
-        "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"
-    }
-]
+h1 {
+  text-align: center;
+}
 
-def normalize(text):
-    return (
-        text.replace("⚪︎", "○")
-            .replace("◯", "○")
-            .replace(" ", "")
-            .replace("　", "")
-            .replace("\n", "")
-            .strip()
-    )
+#calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  max-width: 800px;
+  margin: 0 auto;
+}
 
-def fetch(site):
-    payload = {
-        "action": "xo_event_calendar_month",
-        "id": "xo-event-calendar-1",
-        "month": f"{YEAR}-{MONTH}",
-        "event": "1",
-        "categories": "",
-        "holidays": "all",
-        "prev": "1",
-        "next": "-1",
-        "start_of_week": "1",
-        "months": "1",
-        "navigation": "1",
-        "title_format": "",
-        "is_locale": "1",
-        "columns": "1",
-        "base_month": f"{YEAR}-{MONTH}"
-    }
+.day {
+  border: 1px solid #ccc;
+  padding: 8px;
+  min-height: 80px;
+  font-size: 14px;
+  position: relative;
+}
 
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+.date {
+  font-weight: bold;
+}
 
-    print(f"\n🌐 {site['name']}")
+/* 土日カラー */
+.sat {
+  background-color: #e6f0ff;
+}
 
-    res = requests.post(site["url"], data=payload, headers=headers)
+.sun {
+  background-color: #ffe6e6;
+}
 
-    print("STATUS:", res.status_code)
-    print("LEN:", len(res.text))
+/* イベント */
+.event {
+  margin-top: 4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}
 
-    # 🔥 ここが超重要デバッグ
-    print("===== RESPONSE START =====")
-    print(res.text[:1000])
-    print("===== RESPONSE END =====")
+.couleur {
+  background: #cb0cc8;
+  color: #fff;
+}
 
-    print("○ count:", res.text.count("○"))
+.claris {
+  background: #0000cb;
+  color: #fff;
+}
 
-    return parse(res.text, site["name"])
+.fuel {
+  background: #2cb4ad;
+  color: #fff;
+}
+</style>
+</head>
 
-def parse(html, site_name):
-    soup = BeautifulSoup(html, "html.parser")
-    events = []
+<body>
 
-    tds = soup.select("td")
+<h1>予約カレンダー</h1>
 
-    print("🧩 cells:", len(tds))
+<div id="calendar"></div>
 
-    for td in tds:
+<script>
+const YEAR = 2026;
+const MONTH = 4;
 
-        if "other-month" in td.get("class", []):
-            continue
+const calendar = document.getElementById("calendar");
 
-        date_tag = td.select_one(".date")
-        if not date_tag:
-            continue
+// 曜日（0=日,6=土）
+function getDayClass(year, month, day) {
+  const d = new Date(year, month - 1, day);
+  const w = d.getDay();
 
-        day = date_tag.text.strip()
-        if not day.isdigit():
-            continue
+  if (w === 0) return "sun";
+  if (w === 6) return "sat";
+  return "";
+}
 
-        date = f"{YEAR}-{str(MONTH).zfill(2)}-{str(day).zfill(2)}"
+// カレンダー枠作成
+function createCalendar(events) {
 
-        text = normalize(td.get_text())
+  calendar.innerHTML = "";
 
-        print(site_name, date, text)
+  const lastDay = new Date(YEAR, MONTH, 0).getDate();
 
-        if "1部○" in text:
-            events.append({
-                "site": site_name,
-                "date": date,
-                "part": "1部",
-                "status": "available"
-            })
-            print(f"✅ {site_name} 1部 {date}")
+  for (let d = 1; d <= lastDay; d++) {
 
-        if "2部○" in text:
-            events.append({
-                "site": site_name,
-                "date": date,
-                "part": "2部",
-                "status": "available"
-            })
-            print(f"✅ {site_name} 2部 {date}")
+    const dateStr = `${YEAR}-${String(MONTH).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
-    print(f"📦 {site_name} events:", len(events))
-    return events
+    const dayDiv = document.createElement("div");
+    dayDiv.className = "day " + getDayClass(YEAR, MONTH, d);
 
-def main():
-    all_events = []
+    const dateEl = document.createElement("div");
+    dateEl.className = "date";
+    dateEl.textContent = d;
 
-    for site in SITES:
-        all_events.extend(fetch(site))
+    dayDiv.appendChild(dateEl);
 
-    print("\n==============================")
-    print("📊 TOTAL:", len(all_events))
-    print("==============================")
+    // イベント追加
+    events
+      .filter(e => e.date === dateStr)
+      .forEach(e => {
 
-    with open("events.json", "w", encoding="utf-8") as f:
-        json.dump(all_events, f, ensure_ascii=False, indent=2)
+        const ev = document.createElement("div");
+        ev.className = `event ${e.site}`;
+        ev.textContent = `${e.site} ${e.part}`;
 
-    with open("docs/events.json", "w", encoding="utf-8") as f:
-        json.dump(all_events, f, ensure_ascii=False, indent=2)
+        dayDiv.appendChild(ev);
+      });
 
-    print("💾 saved events.json & docs/events.json")
+    calendar.appendChild(dayDiv);
+  }
+}
 
-if __name__ == "__main__":
-    main()
+// データ取得
+fetch("https://yzcrue-kashiwa.github.io/calendar/events.json")
+  .then(res => res.json())
+  .then(data => {
+    console.log("EVENTS:", data);
+    createCalendar(data);
+  })
+  .catch(err => {
+    console.error("ERROR:", err);
+  });
+
+</script>
+
+</body>
+</html>
