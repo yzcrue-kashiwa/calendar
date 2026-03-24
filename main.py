@@ -12,7 +12,7 @@ SITES = [
     }
 ]
 
-# 🔥 文字ゆらぎ対策（超重要）
+# 🔥 文字ゆらぎ除去
 def clean(text):
     return (
         text.replace("\n", "")
@@ -48,8 +48,7 @@ def parse(html, year, month):
     results = []
 
     weeks = soup.select("td.month-week")
-
-    print(f"🧩 weeks: {len(weeks)}")
+    print(f"🧩 weeks found: {len(weeks)}")
 
     for week in weeks:
         days = week.select(".month-dayname td div")
@@ -67,7 +66,7 @@ def parse(html, year, month):
             day = int(day_text)
             date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
 
-            # 1部
+            # ---- 1部 ----
             try:
                 raw1 = event_tables[0].select("td")[i].text
                 t1 = clean(raw1)
@@ -75,16 +74,16 @@ def parse(html, year, month):
                 print(f"[DEBUG 1部] {date} -> '{t1}'")
 
                 if "1部○" in t1:
+                    print(f"✅ ADD 1部: {date}")
                     results.append({
                         "date": date,
                         "part": "1部",
                         "status": "available"
                     })
-
             except Exception as e:
                 print("1部 error:", e)
 
-            # 2部
+            # ---- 2部 ----
             try:
                 raw2 = event_tables[1].select("td")[i].text
                 t2 = clean(raw2)
@@ -92,15 +91,16 @@ def parse(html, year, month):
                 print(f"[DEBUG 2部] {date} -> '{t2}'")
 
                 if "2部○" in t2:
+                    print(f"✅ ADD 2部: {date}")
                     results.append({
                         "date": date,
                         "part": "2部",
                         "status": "available"
                     })
-
             except Exception as e:
                 print("2部 error:", e)
 
+    print(f"📦 parse結果: {len(results)}件")
     return results
 
 
@@ -119,17 +119,28 @@ def main():
             continue
 
         events = parse(html, year, month)
+
+        print(f"📥 取得イベント数: {len(events)}")
+
+        # 🔥 絶対extend使う（上書き禁止）
         all_events.extend(events)
 
-    # 🔥 保存先（超重要）
+    print("================================")
+    print(f"📊 FINAL events: {len(all_events)}")
+    print(all_events)  # ← 中身確認
+    print("================================")
+
+    # 🔥 空だったら強制エラー（気づける）
+    if len(all_events) == 0:
+        print("⚠️ WARNING: イベント0件！")
+
+    # 保存
     os.makedirs("calendar", exist_ok=True)
 
     with open("calendar/events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
-    print("================================")
-    print(f"✅ Saved {len(all_events)} events")
-    print("================================")
+    print("💾 JSON書き込み完了")
 
 
 if __name__ == "__main__":
