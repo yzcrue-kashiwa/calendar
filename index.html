@@ -1,104 +1,139 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>空きカレンダー</title>
+import requests
+from bs4 import BeautifulSoup
+import json
 
-<style>
-body { font-family: sans-serif; }
+YEAR = 2026
+MONTH = 3
 
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
+SITES = [
+    {
+        "name": "couleur",
+        "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"
+    },
+    {
+        "name": "claris",
+        "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php"
+    },
+    {
+        "name": "fuel",
+        "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"
+    }
+]
 
-.day {
-  border: 1px solid #ccc;
-  min-height: 80px;
-  padding: 4px;
-  font-size: 12px;
-}
+def normalize(text):
+    return (
+        text.replace("⚪︎", "○")
+            .replace("◯", "○")
+            .replace(" ", "")
+            .replace("　", "")
+            .replace("\n", "")
+            .strip()
+    )
 
-.past { background: #eee; color: #999; }
-.sat { background: #e6f0ff; }
-.sun { background: #ffe6e6; }
-
-.date { font-weight: bold; }
-
-.event {
-  font-size: 11px;
-  margin-top: 4px;
-}
-
-/* 店舗カラー */
-.couleur { color: blue; }
-.claris { color: green; }
-.fuel { color: orange; }
-
-</style>
-</head>
-
-<body>
-
-<h2>コローレ系列　予約空きカレンダー</h2>
-<div class="calendar" id="calendar"></div>
-
-<script>
-fetch("events.json")
-.then(res => res.json())
-.then(events => {
-
-  const cal = document.getElementById("calendar");
-  const today = new Date();
-
-  const year = today.getFullYear();
-  const month = today.getMonth();
-
-  const firstDay = new Date(year, month, 1);
-  const lastDate = new Date(year, month + 1, 0).getDate();
-
-  let startDay = firstDay.getDay();
-  startDay = (startDay === 0) ? 6 : startDay - 1;
-
-  for (let i = 0; i < startDay; i++) {
-    cal.innerHTML += `<div></div>`;
-  }
-
-  for (let d = 1; d <= lastDate; d++) {
-
-    const date = new Date(year, month, d);
-    const yyyy = date.getFullYear();
-    const mm = String(month + 1).padStart(2, "0");
-    const dd = String(d).padStart(2, "0");
-
-    const dateStr = `${yyyy}-${mm}-${dd}`;
-
-    let cls = "day";
-
-    if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
-      cls += " past";
+def fetch(site):
+    payload = {
+        "action": "xo_event_calendar_month",
+        "id": "xo-event-calendar-1",
+        "month": f"{YEAR}-{MONTH}",
+        "event": "1",
+        "categories": "",
+        "holidays": "all",
+        "prev": "1",
+        "next": "-1",
+        "start_of_week": "1",
+        "months": "1",
+        "navigation": "1",
+        "title_format": "",
+        "is_locale": "1",
+        "columns": "1",
+        "base_month": f"{YEAR}-{MONTH}"
     }
 
-    const day = date.getDay();
-    if (day === 6) cls += " sat";
-    if (day === 0) cls += " sun";
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
-    const dayEvents = events.filter(e => e.date === dateStr);
+    print(f"\n🌐 {site['name']}")
 
-    let html = `<div class="${cls}">`;
-    html += `<div class="date">${d}</div>`;
+    res = requests.post(site["url"], data=payload, headers=headers)
 
-    dayEvents.forEach(e => {
-      html += `<div class="event ${e.site}">${e.site} ${e.part}</div>`;
-    });
+    print("STATUS:", res.status_code)
+    print("LEN:", len(res.text))
 
-    html += `</div>`;
-    cal.innerHTML += html;
-  }
+    # 🔥 ここが超重要デバッグ
+    print("===== RESPONSE START =====")
+    print(res.text[:1000])
+    print("===== RESPONSE END =====")
 
-});
-</script>
+    print("○ count:", res.text.count("○"))
 
-</body>
-</html>
+    return parse(res.text, site["name"])
+
+def parse(html, site_name):
+    soup = BeautifulSoup(html, "html.parser")
+    events = []
+
+    tds = soup.select("td")
+
+    print("🧩 cells:", len(tds))
+
+    for td in tds:
+
+        if "other-month" in td.get("class", []):
+            continue
+
+        date_tag = td.select_one(".date")
+        if not date_tag:
+            continue
+
+        day = date_tag.text.strip()
+        if not day.isdigit():
+            continue
+
+        date = f"{YEAR}-{str(MONTH).zfill(2)}-{str(day).zfill(2)}"
+
+        text = normalize(td.get_text())
+
+        print(site_name, date, text)
+
+        if "1部○" in text:
+            events.append({
+                "site": site_name,
+                "date": date,
+                "part": "1部",
+                "status": "available"
+            })
+            print(f"✅ {site_name} 1部 {date}")
+
+        if "2部○" in text:
+            events.append({
+                "site": site_name,
+                "date": date,
+                "part": "2部",
+                "status": "available"
+            })
+            print(f"✅ {site_name} 2部 {date}")
+
+    print(f"📦 {site_name} events:", len(events))
+    return events
+
+def main():
+    all_events = []
+
+    for site in SITES:
+        all_events.extend(fetch(site))
+
+    print("\n==============================")
+    print("📊 TOTAL:", len(all_events))
+    print("==============================")
+
+    with open("events.json", "w", encoding="utf-8") as f:
+        json.dump(all_events, f, ensure_ascii=False, indent=2)
+
+    with open("docs/events.json", "w", encoding="utf-8") as f:
+        json.dump(all_events, f, ensure_ascii=False, indent=2)
+
+    print("💾 saved events.json & docs/events.json")
+
+if __name__ == "__main__":
+    main()
