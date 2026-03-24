@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "date": "2026-03-26",
+    "part": "1部",
+    "status": "available"
+  },
+  {
+    "date": "2026-03-26",
+    "part": "2部",
+    "status": "available"
+  },
+  {
+    "date": "2026-03-27",
+    "part": "1部",
+    "status": "available"
+  },
+  {
+    "date": "2026-03-31",
+    "part": "1部",
+    "status": "available"
+  },
+  {
+    "date": "2026-03-01",
+    "part": "1部",
+    "status": "available"
+  },
+  {
+    "date": "2026-03-01",
+    "part": "2部",
+    "status": "available"
+  },
+  {
+    "date": "2026-03-02",
+    "part": "1部",
+    "status": "available"
+  },
+  {
+    "date": "2026-03-03",
+    "part": "1部",
+    "status": "available"
+  }
+]
