@@ -1,9 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+from datetime import datetime, timedelta
 
-YEAR = 2026
-MONTH = 4  # ← 必ず対象月に合わせる
+TODAY = datetime.now()
+END = TODAY + timedelta(days=10)
 
 SITES = [
     {
@@ -30,54 +31,40 @@ def normalize(text):
             .strip()
     )
 
+def in_range(date_str):
+    d = datetime.strptime(date_str, "%Y-%m-%d")
+    return TODAY <= d < END
+
 def fetch(site):
+
+    YEAR = TODAY.year
+    MONTH = TODAY.month
+
     payload = {
         "action": "xo_event_calendar_month",
         "id": "xo-event-calendar-1",
         "month": f"{YEAR}-{MONTH}",
-        "event": "1",
-        "categories": "",
-        "holidays": "all",
-        "prev": "1",
-        "next": "-1",
-        "start_of_week": "1",
-        "months": "1",
-        "navigation": "1",
-        "title_format": "",
-        "is_locale": "1",
-        "columns": "1",
-        "base_month": f"{YEAR}-{MONTH}"
-    }
-
-    headers = {
-        "User-Agent": "Mozilla/5.0"
     }
 
     print(f"\n🌐 Fetching {site['name']}...")
-    res = requests.post(site["url"], data=payload, headers=headers)
+    res = requests.post(site["url"], data=payload)
 
     print("STATUS:", res.status_code)
-    print("LEN:", len(res.text))
 
     soup = BeautifulSoup(res.text, "html.parser")
 
     events = []
 
     weeks = soup.select("td.month-week")
-    print("🧩 weeks:", len(weeks))
 
     for week in weeks:
 
-        # 日付
         days = week.select("table.month-dayname td div")
-
-        # イベント（複数テーブルまとめる）
         tables = week.select("table.month-event")
         rows = [t.select("td") for t in tables]
 
         for i, d in enumerate(days):
 
-            # 他月は除外
             if "other-month" in d.get("class", []):
                 continue
 
@@ -87,7 +74,10 @@ def fetch(site):
 
             date = f"{YEAR}-{str(MONTH).zfill(2)}-{str(day).zfill(2)}"
 
-            # 🔥 全テーブルを合体
+            # 🔥 ここで10日制限
+            if not in_range(date):
+                continue
+
             texts = []
             for r in rows:
                 if i < len(r):
@@ -95,27 +85,20 @@ def fetch(site):
 
             merged = "".join(texts)
 
-            print(f"{site['name']} {date} | {merged}")
-
-            # 1部
+            # ○のみ
             if "1部○" in merged:
                 events.append({
                     "site": site["name"],
                     "date": date,
-                    "part": "1部",
-                    "status": "available"
+                    "part": "1部"
                 })
-                print(f"✅ ADD 1部: {date}")
 
-            # 2部
             if "2部○" in merged:
                 events.append({
                     "site": site["name"],
                     "date": date,
-                    "part": "2部",
-                    "status": "available"
+                    "part": "2部"
                 })
-                print(f"✅ ADD 2部: {date}")
 
     print(f"📦 {site['name']} events:", len(events))
     return events
@@ -127,19 +110,12 @@ def main():
     for site in SITES:
         all_events.extend(fetch(site))
 
-    print("\n==============================")
     print("📊 TOTAL:", len(all_events))
-    print("==============================")
 
-    # GitHub Pages用
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
-    # ローカル確認用
-    with open("events.json", "w", encoding="utf-8") as f:
-        json.dump(all_events, f, ensure_ascii=False, indent=2)
-
-    print("💾 saved events.json & docs/events.json")
+    print("💾 saved")
 
 
 if __name__ == "__main__":
