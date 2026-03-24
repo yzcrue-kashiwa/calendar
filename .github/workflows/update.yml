@@ -24,11 +24,11 @@ jobs:
       - name: Run script
         run: python main.py
 
-      # 🔥 ここが超重要
-      - name: Commit & Push
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add calendar/events.json
-          git commit -m "update events" || echo "no changes"
-          git push
+- name: Commit & Push
+  run: |
+    git config user.name "github-actions"
+    git config user.email "actions@github.com"
+
+    git add .
+    git commit -m "update events" || echo "no changes"
+    git push
