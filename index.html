@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>予約カレンダー</title>
+
 <style>
 body {
   font-family: sans-serif;
@@ -13,7 +14,7 @@ table {
   border-collapse: collapse;
 }
 
-td, th {
+td {
   border: 1px solid #ccc;
   width: 100px;
   height: 80px;
@@ -31,6 +32,7 @@ td, th {
 }
 </style>
 </head>
+
 <body>
 
 <h2>予約カレンダー</h2>
@@ -39,11 +41,14 @@ td, th {
 <script>
 const today = new Date();
 const year = today.getFullYear();
-const month = today.getMonth(); // 0始まり
+const month = today.getMonth();
 
-fetch("events.json?v=" + new Date().getTime())
+fetch("./events.json?v=" + new Date().getTime())
   .then(res => res.json())
   .then(events => {
+
+    console.log("取得イベント:", events);
+
     const table = document.getElementById("calendar");
 
     const firstDay = new Date(year, month, 1).getDay();
@@ -51,7 +56,6 @@ fetch("events.json?v=" + new Date().getTime())
 
     let html = "<tr>";
 
-    // 空白
     for (let i = 0; i < firstDay; i++) {
       html += "<td></td>";
     }
@@ -68,7 +72,6 @@ fetch("events.json?v=" + new Date().getTime())
         cellClass = "past";
       }
 
-      // イベント
       const dayEvents = events.filter(e => e.date === dateStr);
 
       dayEvents.forEach(e => {
@@ -85,6 +88,10 @@ fetch("events.json?v=" + new Date().getTime())
 
     html += "</tr>";
     table.innerHTML = html;
+
+  })
+  .catch(err => {
+    console.error("❌ fetch失敗:", err);
   });
 </script>
 
