@@ -2,7 +2,7 @@ name: update-data
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 1時間ごと
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -24,11 +24,16 @@ jobs:
       - name: Run script
         run: python main.py
 
-- name: Commit & Push
-  run: |
-    git config user.name "github-actions"
-    git config user.email "actions@github.com"
+      # 🔥 デバッグ（どこに保存されたか確認）
+      - name: List files
+        run: ls -R
 
-    git add .
-    git commit -m "update events" || echo "no changes"
-    git push
+      # 🔥 全部コミット（パス問題完全回避）
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git add .
+          git commit -m "update events" || echo "no changes"
+          git push
