@@ -3,16 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>空きカレンダー</title>
-
 <style>
 body { font-family: sans-serif; text-align: center; }
 table { border-collapse: collapse; margin: auto; }
-th, td {
-  border: 1px solid #ccc;
-  width: 100px;
-  height: 80px;
-  vertical-align: top;
-}
+th, td { border: 1px solid #ccc; width: 100px; height: 80px; vertical-align: top; }
 .past { background: #eee; color: #999; }
 .event { font-size: 12px; margin-top: 4px; }
 .part1 { color: #d100d1; }
@@ -51,7 +45,6 @@ fetch("events.json")
 
   const firstDay = new Date(year, month, 1);
   const start = (firstDay.getDay() + 6) % 7;
-
   const lastDate = new Date(year, month + 1, 0).getDate();
 
   let row = document.createElement("tr");
@@ -63,7 +56,6 @@ fetch("events.json")
   for (let d = 1; d <= lastDate; d++) {
 
     const cell = document.createElement("td");
-
     const dateStr =
       `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
