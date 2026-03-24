@@ -24,11 +24,9 @@ jobs:
       - name: Run script
         run: python main.py
 
-      # 🔥 デバッグ（どこに保存されたか確認）
-      - name: List files
+      - name: List files（確認用）
         run: ls -R
 
-      # 🔥 全部コミット（パス問題完全回避）
       - name: Commit & Push
         run: |
           git config user.name "github-actions"
