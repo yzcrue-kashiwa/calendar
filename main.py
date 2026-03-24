@@ -81,7 +81,6 @@ def parse(html, year, month):
             try:
                 t1 = clean(event_tables[0].select("td")[i].text)
                 if "1部○" in t1:
-                    print(f"✅ ADD 1部: {date}")
                     results.append({
                         "date": date,
                         "part": "1部",
@@ -94,7 +93,6 @@ def parse(html, year, month):
             try:
                 t2 = clean(event_tables[1].select("td")[i].text)
                 if "2部○" in t2:
-                    print(f"✅ ADD 2部: {date}")
                     results.append({
                         "date": date,
                         "part": "2部",
@@ -128,18 +126,14 @@ def main():
     print(f"📊 FINAL events: {len(all_events)}")
     print("================================")
 
-    # 🔥 保存（両方に書く）
+    # 🔥 保存先（全部に書く：確実に見える）
     paths = [
+        "events.json",                 # ← 最重要（ルート）
         "calendar/events.json",
         "docs/calendar/events.json"
     ]
 
     for path in paths:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(all_events, f, ensure_ascii=False, indent=2)
-        print(f"💾 saved: {path}")
-
-
-if __name__ == "__main__":
-    main()
+            json.dump(all
