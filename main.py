@@ -3,10 +3,6 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import json
 
-# =========================
-# サイト設定
-# =========================
-
 SITES = [
     {
         "name": "couleur",
@@ -25,10 +21,6 @@ SITES = [
     }
 ]
 
-# =========================
-# 正規化
-# =========================
-
 def normalize(text):
     return (
         text.replace("⚪︎", "○")
@@ -38,10 +30,6 @@ def normalize(text):
             .replace("\n", "")
             .strip()
     )
-
-# =========================
-# 取得
-# =========================
 
 def fetch_site(site):
     today = datetime.now()
@@ -63,24 +51,12 @@ def fetch_site(site):
 
     print(f"\n🌐 Fetching {site['name']}...")
 
-    try:
-        res = requests.post(site["url"], data=payload, headers=headers, timeout=10)
+    res = requests.post(site["url"], data=payload, headers=headers)
 
-        print("STATUS:", res.status_code)
-        print("LEN:", len(res.text))
+    print("STATUS:", res.status_code)
+    print("LEN:", len(res.text))
 
-        if res.status_code != 200:
-            return []
-
-        return parse_html(res.text, site["name"], year, month)
-
-    except Exception as e:
-        print("ERROR:", e)
-        return []
-
-# =========================
-# パース（最重要）
-# =========================
+    return parse_html(res.text, site["name"], year, month)
 
 def parse_html(html, site_name, year, month):
     soup = BeautifulSoup(html, "html.parser")
@@ -92,34 +68,28 @@ def parse_html(html, site_name, year, month):
 
     for td in tds:
 
-        # 前月・翌月除外
         if "other-month" in td.get("class", []):
             continue
 
-        # 日付取得
         date_tag = td.select_one(".date")
         if not date_tag:
             continue
 
         day = date_tag.text.strip()
-
         if not day.isdigit():
             continue
 
         date_str = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
 
-        # 👇 ここが最重要（分解して取得）
-        texts = [normalize(t) for t in td.stripped_strings]
+        # 👇 ここが核心
+        event_tags = td.select(".xo-event")
 
-        # デバッグ
-        print(site_name, date_str, texts)
+        for ev in event_tags:
+            text = normalize(ev.get_text())
 
-        # -------------------------
-        # 判定（強化版）
-        # -------------------------
-        for t in texts:
+            print(site_name, date_str, text)
 
-            if "1部○" in t:
+            if "1部○" in text:
                 events.append({
                     "site": site_name,
                     "date": date_str,
@@ -128,7 +98,7 @@ def parse_html(html, site_name, year, month):
                 })
                 print(f"✅ {site_name} 1部: {date_str}")
 
-            if "2部○" in t:
+            if "2部○" in text:
                 events.append({
                     "site": site_name,
                     "date": date_str,
@@ -140,31 +110,23 @@ def parse_html(html, site_name, year, month):
     print(f"📦 {site_name} events:", len(events))
     return events
 
-# =========================
-# メイン
-# =========================
-
 def main():
     all_events = []
 
     for site in SITES:
-        events = fetch_site(site)
-        all_events.extend(events)
+        all_events.extend(fetch_site(site))
 
     print("\n==============================")
     print("📊 TOTAL:", len(all_events))
     print("==============================")
 
-    # 保存
     with open("events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
-    print("💾 saved events.json & docs/events.json")
-
-# =========================
+    print("💾 saved")
 
 if __name__ == "__main__":
     main()
