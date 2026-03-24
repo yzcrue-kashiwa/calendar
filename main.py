@@ -9,18 +9,18 @@ SITES = [
         "name": "Couleur",
         "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php",
         "calendar_id": "xo-event-calendar-1"
-    },
-    {
-        "name": "Colore",
-        "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php",
-        "calendar_id": "xo-event-calendar-1"
-    },
-    {
-        "name": "Claris",
-        "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php",
-        "calendar_id": "xo-event-calendar-1"
     }
 ]
+
+# 🔥 文字ゆらぎ対策（超重要）
+def clean(text):
+    return (
+        text.replace("\n", "")
+            .replace("\t", "")
+            .replace(" ", "")
+            .replace("　", "")
+            .strip()
+    )
 
 def fetch_month(site, year, month):
     payload = {
@@ -38,8 +38,8 @@ def fetch_month(site, year, month):
         res = requests.post(site["url"], data=payload, timeout=10)
         res.raise_for_status()
         return res.text
-    except:
-        print(f"❌ Failed: {site['name']}")
+    except Exception as e:
+        print(f"❌ Fetch error: {e}")
         return None
 
 
@@ -49,6 +49,8 @@ def parse(html, year, month):
 
     weeks = soup.select("td.month-week")
 
+    print(f"🧩 weeks: {len(weeks)}")
+
     for week in weeks:
         days = week.select(".month-dayname td div")
         event_tables = week.select("table.month-event")
@@ -57,7 +59,7 @@ def parse(html, year, month):
             continue
 
         for i, d in enumerate(days):
-            day_text = d.text.strip()
+            day_text = clean(d.text)
 
             if not day_text.isdigit():
                 continue
@@ -67,27 +69,37 @@ def parse(html, year, month):
 
             # 1部
             try:
-                t1 = event_tables[0].select("td")[i].text
-                if "1部" in t1 and "○" in t1:
+                raw1 = event_tables[0].select("td")[i].text
+                t1 = clean(raw1)
+
+                print(f"[DEBUG 1部] {date} -> '{t1}'")
+
+                if "1部○" in t1:
                     results.append({
                         "date": date,
                         "part": "1部",
                         "status": "available"
                     })
-            except:
-                pass
+
+            except Exception as e:
+                print("1部 error:", e)
 
             # 2部
             try:
-                t2 = event_tables[1].select("td")[i].text
-                if "2部" in t2 and "○" in t2:
+                raw2 = event_tables[1].select("td")[i].text
+                t2 = clean(raw2)
+
+                print(f"[DEBUG 2部] {date} -> '{t2}'")
+
+                if "2部○" in t2:
                     results.append({
                         "date": date,
                         "part": "2部",
                         "status": "available"
                     })
-            except:
-                pass
+
+            except Exception as e:
+                print("2部 error:", e)
 
     return results
 
@@ -100,21 +112,24 @@ def main():
     all_events = []
 
     for site in SITES:
-        print(f"Fetching {site['name']}...")
+        print(f"🌐 Fetching {site['name']}...")
         html = fetch_month(site, year, month)
+
         if not html:
             continue
 
         events = parse(html, year, month)
         all_events.extend(events)
 
-    # 🔥 ここが超重要
+    # 🔥 保存先（超重要）
     os.makedirs("calendar", exist_ok=True)
 
     with open("calendar/events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
+    print("================================")
     print(f"✅ Saved {len(all_events)} events")
+    print("================================")
 
 
 if __name__ == "__main__":
