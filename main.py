@@ -35,18 +35,15 @@ def in_range(date_str):
     d = datetime.strptime(date_str, "%Y-%m-%d")
     return TODAY <= d < END
 
-def fetch(site):
-
-    YEAR = TODAY.year
-    MONTH = TODAY.month
+def fetch_month(site, year, month):
 
     payload = {
         "action": "xo_event_calendar_month",
         "id": "xo-event-calendar-1",
-        "month": f"{YEAR}-{MONTH}",
+        "month": f"{year}-{month}",
     }
 
-    print(f"\n🌐 Fetching {site['name']}...")
+    print(f"\n🌐 {site['name']} {year}-{month}")
     res = requests.post(site["url"], data=payload)
 
     print("STATUS:", res.status_code)
@@ -72,7 +69,7 @@ def fetch(site):
             if not day.isdigit():
                 continue
 
-            date = f"{YEAR}-{str(MONTH).zfill(2)}-{str(day).zfill(2)}"
+            date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
 
             # 🔥 ここで10日制限
             if not in_range(date):
@@ -85,7 +82,6 @@ def fetch(site):
 
             merged = "".join(texts)
 
-            # ○のみ
             if "1部○" in merged:
                 events.append({
                     "site": site["name"],
@@ -107,10 +103,21 @@ def fetch(site):
 def main():
     all_events = []
 
-    for site in SITES:
-        all_events.extend(fetch(site))
+    this_month = TODAY.month
+    next_month = this_month + 1 if this_month < 12 else 1
+    next_year = TODAY.year if this_month < 12 else TODAY.year + 1
 
+    for site in SITES:
+
+        # 今月
+        all_events.extend(fetch_month(site, TODAY.year, this_month))
+
+        # 来月
+        all_events.extend(fetch_month(site, next_year, next_month))
+
+    print("\n====================")
     print("📊 TOTAL:", len(all_events))
+    print("====================")
 
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
