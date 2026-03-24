@@ -3,23 +3,20 @@ from bs4 import BeautifulSoup
 import json
 
 YEAR = 2026
-MONTH = 3
+MONTH = 4   # ← 今は4月になってるので注意
 
 SITES = [
     {
         "name": "couleur",
-        "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php",
-        "id": "xo-event-calendar-1"
+        "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"
     },
     {
         "name": "claris",
-        "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php",
-        "id": "xo-event-calendar-1"
+        "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php"
     },
     {
         "name": "fuel",
-        "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php",
-        "id": "xo-event-calendar-1"
+        "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"
     }
 ]
 
@@ -29,83 +26,81 @@ def normalize(text):
             .replace("◯", "○")
             .replace(" ", "")
             .replace("　", "")
-            .replace("\n", "")
             .strip()
     )
 
 def fetch(site):
     payload = {
         "action": "xo_event_calendar_month",
-        "id": site["id"],
+        "id": "xo-event-calendar-1",
         "month": f"{YEAR}-{MONTH}",
         "event": "1",
         "categories": "",
         "holidays": "all",
+        "prev": "1",
+        "next": "-1",
         "start_of_week": "1",
         "months": "1",
-        "navigation": "1"
-    }
-
-    headers = {
-        "User-Agent": "Mozilla/5.0"
+        "navigation": "1",
+        "title_format": "",
+        "is_locale": "1",
+        "columns": "1",
+        "base_month": f"{YEAR}-{MONTH}"
     }
 
     print(f"\n🌐 {site['name']}")
+    res = requests.post(site["url"], data=payload)
+    soup = BeautifulSoup(res.text, "html.parser")
 
-    res = requests.post(site["url"], data=payload, headers=headers)
-
-    print("STATUS:", res.status_code)
-    print("LEN:", len(res.text))
-    print("xo-event count:", res.text.count("xo-event"))
-
-    return parse(res.text, site["name"])
-
-def parse(html, site_name):
-    soup = BeautifulSoup(html, "html.parser")
     events = []
 
-    tds = soup.select("td")
+    weeks = soup.select("td.month-week")
+    print("🧩 weeks:", len(weeks))
 
-    print("🧩 cells:", len(tds))
+    for week in weeks:
 
-    for td in tds:
+        days = week.select("table.month-dayname td div")
+        tables = week.select("table.month-event")
 
-        if "other-month" in td.get("class", []):
+        if len(tables) < 2:
             continue
 
-        date_tag = td.select_one(".date")
-        if not date_tag:
-            continue
+        first = tables[0].select("td")
+        second = tables[1].select("td")
 
-        day = date_tag.text.strip()
-        if not day.isdigit():
-            continue
+        for i, d in enumerate(days):
 
-        date = f"{YEAR}-{str(MONTH).zfill(2)}-{str(day).zfill(2)}"
+            if "other-month" in d.get("class", []):
+                continue
 
-        text = normalize(td.get_text())
+            day = d.text.strip()
+            if not day.isdigit():
+                continue
 
-        print(site_name, date, text)
+            date = f"{YEAR}-{str(MONTH).zfill(2)}-{str(day).zfill(2)}"
 
-        if "1部○" in text:
-            events.append({
-                "site": site_name,
-                "date": date,
-                "part": "1部",
-                "status": "available"
-            })
-            print(f"✅ {site_name} 1部 {date}")
+            t1 = normalize(first[i].get_text()) if i < len(first) else ""
+            t2 = normalize(second[i].get_text()) if i < len(second) else ""
 
-        if "2部○" in text:
-            events.append({
-                "site": site_name,
-                "date": date,
-                "part": "2部",
-                "status": "available"
-            })
-            print(f"✅ {site_name} 2部 {date}")
+            print(date, t1, t2)
 
-    print(f"📦 {site_name} events:", len(events))
+            if "1部○" in t1:
+                events.append({
+                    "site": site["name"],
+                    "date": date,
+                    "part": "1部",
+                    "status": "available"
+                })
+
+            if "2部○" in t2:
+                events.append({
+                    "site": site["name"],
+                    "date": date,
+                    "part": "2部",
+                    "status": "available"
+                })
+
+    print(f"📦 {site['name']} events:", len(events))
     return events
 
 def main():
