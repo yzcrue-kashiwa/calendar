@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import json
 
 YEAR = 2026
-MONTH = 4  # ← 必ず今取得したい月に合わせる
+MONTH = 4  # ← 必ず対象月に合わせる
 
 SITES = [
     {
@@ -54,7 +54,6 @@ def fetch(site):
     }
 
     print(f"\n🌐 Fetching {site['name']}...")
-
     res = requests.post(site["url"], data=payload, headers=headers)
 
     print("STATUS:", res.status_code)
@@ -72,28 +71,13 @@ def fetch(site):
         # 日付
         days = week.select("table.month-dayname td div")
 
-        # イベントテーブル
+        # イベント（複数テーブルまとめる）
         tables = week.select("table.month-event")
+        rows = [t.select("td") for t in tables]
 
-        first = None
-        second = None
-
-        # 🔥 クラスで判定（順番依存しない）
-        for t in tables:
-            html_str = str(t)
-
-            if "category-first-half" in html_str:
-                first = t.select("td")
-
-            elif "category-second-half" in html_str:
-                second = t.select("td")
-
-        if not first or not second:
-            continue
-
-        # 日付とイベントを横対応
         for i, d in enumerate(days):
 
+            # 他月は除外
             if "other-month" in d.get("class", []):
                 continue
 
@@ -103,13 +87,18 @@ def fetch(site):
 
             date = f"{YEAR}-{str(MONTH).zfill(2)}-{str(day).zfill(2)}"
 
-            t1 = normalize(first[i].get_text()) if i < len(first) else ""
-            t2 = normalize(second[i].get_text()) if i < len(second) else ""
+            # 🔥 全テーブルを合体
+            texts = []
+            for r in rows:
+                if i < len(r):
+                    texts.append(normalize(r[i].get_text()))
 
-            print(f"{site['name']} {date} | {t1} | {t2}")
+            merged = "".join(texts)
 
-            # ✅ 1部
-            if "1部○" in t1:
+            print(f"{site['name']} {date} | {merged}")
+
+            # 1部
+            if "1部○" in merged:
                 events.append({
                     "site": site["name"],
                     "date": date,
@@ -118,8 +107,8 @@ def fetch(site):
                 })
                 print(f"✅ ADD 1部: {date}")
 
-            # ✅ 2部
-            if "2部○" in t2:
+            # 2部
+            if "2部○" in merged:
                 events.append({
                     "site": site["name"],
                     "date": date,
