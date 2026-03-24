@@ -2,101 +2,90 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>空きカレンダー</title>
+<title>予約カレンダー</title>
 <style>
-body { font-family: sans-serif; text-align: center; }
-table { border-collapse: collapse; margin: auto; }
-th, td { border: 1px solid #ccc; width: 100px; height: 80px; vertical-align: top; }
-.past { background: #eee; color: #999; }
-.event { font-size: 12px; margin-top: 4px; }
-.part1 { color: #d100d1; }
-.part2 { color: #0000cc; }
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+td, th {
+  border: 1px solid #ccc;
+  width: 100px;
+  height: 80px;
+  vertical-align: top;
+  padding: 5px;
+}
+
+.available {
+  background-color: #c8f7c5;
+}
+
+.past {
+  background-color: #eee;
+  color: #999;
+}
 </style>
 </head>
-
 <body>
 
-<h2 id="title"></h2>
-
-<table>
-<thead>
-<tr>
-<th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th><th>日</th>
-</tr>
-</thead>
-<tbody id="calendar"></tbody>
-</table>
+<h2>予約カレンダー</h2>
+<table id="calendar"></table>
 
 <script>
 const today = new Date();
 const year = today.getFullYear();
-const month = today.getMonth();
+const month = today.getMonth(); // 0始まり
 
-document.getElementById("title").textContent =
-  `${year}年 ${month + 1}月`;
+fetch("events.json?v=" + new Date().getTime())
+  .then(res => res.json())
+  .then(events => {
+    const table = document.getElementById("calendar");
 
-fetch("events.json")
-.then(res => res.json())
-.then(events => {
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
 
-  console.log("EVENTS:", events);
+    let html = "<tr>";
 
-  const cal = document.getElementById("calendar");
-
-  const firstDay = new Date(year, month, 1);
-  const start = (firstDay.getDay() + 6) % 7;
-  const lastDate = new Date(year, month + 1, 0).getDate();
-
-  let row = document.createElement("tr");
-
-  for (let i = 0; i < start; i++) {
-    row.appendChild(document.createElement("td"));
-  }
-
-  for (let d = 1; d <= lastDate; d++) {
-
-    const cell = document.createElement("td");
-    const dateStr =
-      `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-
-    cell.innerHTML = `<b>${d}</b>`;
-
-    const cellDate = new Date(year, month, d);
-    if (cellDate < new Date().setHours(0,0,0,0)) {
-      cell.classList.add("past");
+    // 空白
+    for (let i = 0; i < firstDay; i++) {
+      html += "<td></td>";
     }
 
-    const dayEvents = events.filter(e => e.date === dateStr);
+    for (let day = 1; day <= lastDate; day++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+      const dateObj = new Date(year, month, day);
 
-    dayEvents.forEach(e => {
-      if (e.status !== "available") return;
+      let cellClass = "";
+      let content = `<strong>${day}</strong><br>`;
 
-      const div = document.createElement("div");
-      div.className = "event";
-
-      if (e.part === "1部") {
-        div.classList.add("part1");
-        div.textContent = "1部 空き";
+      // 過去日
+      if (dateObj < new Date().setHours(0,0,0,0)) {
+        cellClass = "past";
       }
 
-      if (e.part === "2部") {
-        div.classList.add("part2");
-        div.textContent = "2部 空き";
+      // イベント
+      const dayEvents = events.filter(e => e.date === dateStr);
+
+      dayEvents.forEach(e => {
+        content += e.part + "<br>";
+        cellClass = "available";
+      });
+
+      html += `<td class="${cellClass}">${content}</td>`;
+
+      if ((firstDay + day) % 7 === 0) {
+        html += "</tr><tr>";
       }
-
-      cell.appendChild(div);
-    });
-
-    row.appendChild(cell);
-
-    if ((start + d) % 7 === 0) {
-      cal.appendChild(row);
-      row = document.createElement("tr");
     }
-  }
 
-  cal.appendChild(row);
-});
+    html += "</tr>";
+    table.innerHTML = html;
+  });
 </script>
 
 </body>
