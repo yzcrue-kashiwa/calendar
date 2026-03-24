@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import json
 
 YEAR = 2026
-MONTH = 4   # ← 今は4月になってるので注意
+MONTH = 4  # ← 必ず今取得したい月に合わせる
 
 SITES = [
     {
@@ -26,6 +26,7 @@ def normalize(text):
             .replace("◯", "○")
             .replace(" ", "")
             .replace("　", "")
+            .replace("\n", "")
             .strip()
     )
 
@@ -48,8 +49,17 @@ def fetch(site):
         "base_month": f"{YEAR}-{MONTH}"
     }
 
-    print(f"\n🌐 {site['name']}")
-    res = requests.post(site["url"], data=payload)
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    print(f"\n🌐 Fetching {site['name']}...")
+
+    res = requests.post(site["url"], data=payload, headers=headers)
+
+    print("STATUS:", res.status_code)
+    print("LEN:", len(res.text))
+
     soup = BeautifulSoup(res.text, "html.parser")
 
     events = []
@@ -59,15 +69,29 @@ def fetch(site):
 
     for week in weeks:
 
+        # 日付
         days = week.select("table.month-dayname td div")
+
+        # イベントテーブル
         tables = week.select("table.month-event")
 
-        if len(tables) < 2:
+        first = None
+        second = None
+
+        # 🔥 クラスで判定（順番依存しない）
+        for t in tables:
+            html_str = str(t)
+
+            if "category-first-half" in html_str:
+                first = t.select("td")
+
+            elif "category-second-half" in html_str:
+                second = t.select("td")
+
+        if not first or not second:
             continue
 
-        first = tables[0].select("td")
-        second = tables[1].select("td")
-
+        # 日付とイベントを横対応
         for i, d in enumerate(days):
 
             if "other-month" in d.get("class", []):
@@ -82,8 +106,9 @@ def fetch(site):
             t1 = normalize(first[i].get_text()) if i < len(first) else ""
             t2 = normalize(second[i].get_text()) if i < len(second) else ""
 
-            print(date, t1, t2)
+            print(f"{site['name']} {date} | {t1} | {t2}")
 
+            # ✅ 1部
             if "1部○" in t1:
                 events.append({
                     "site": site["name"],
@@ -91,7 +116,9 @@ def fetch(site):
                     "part": "1部",
                     "status": "available"
                 })
+                print(f"✅ ADD 1部: {date}")
 
+            # ✅ 2部
             if "2部○" in t2:
                 events.append({
                     "site": site["name"],
@@ -99,9 +126,11 @@ def fetch(site):
                     "part": "2部",
                     "status": "available"
                 })
+                print(f"✅ ADD 2部: {date}")
 
     print(f"📦 {site['name']} events:", len(events))
     return events
+
 
 def main():
     all_events = []
@@ -113,13 +142,16 @@ def main():
     print("📊 TOTAL:", len(all_events))
     print("==============================")
 
-    with open("events.json", "w", encoding="utf-8") as f:
-        json.dump(all_events, f, ensure_ascii=False, indent=2)
-
+    # GitHub Pages用
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=2)
 
-    print("💾 saved")
+    # ローカル確認用
+    with open("events.json", "w", encoding="utf-8") as f:
+        json.dump(all_events, f, ensure_ascii=False, indent=2)
+
+    print("💾 saved events.json & docs/events.json")
+
 
 if __name__ == "__main__":
     main()
