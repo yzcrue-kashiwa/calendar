@@ -15,10 +15,9 @@ SITES = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "User-Agent": "Mozilla/5.0",
     "Accept": "*/*",
-    "X-Requested-With": "XMLHttpRequest",
-    "Referer": "https://claris-studio-colore-mixbox.com/"
+    "X-Requested-With": "XMLHttpRequest"
 }
 
 # ===== 正規化 =====
@@ -46,9 +45,8 @@ def get_target_months():
         months.add((d.year, d.month))
     return list(months)
 
-# ===== 通信（リトライ） =====
+# ===== 通信 =====
 def post_with_retry(url, payload):
-
     for i in range(3):
         try:
             print(f"🌐 TRY {i+1}: {url}")
@@ -67,21 +65,21 @@ def fetch_month(site, year, month):
 
     print("\n🚀 FETCH START:", site["name"], year, month)
 
-payload = {
-    "action": "xo_event_calendar_month",
-    "id": "xo-event-calendar-1",
-    "month": f"{year}-{month}",
-    "event": "1",          # ★これ超重要
-    "categories": "",
-    "holidays": "all",
-    "prev": "1",
-    "next": "-1",
-    "start_of_week": "1",
-    "months": "1",
-    "navigation": "1",
-    "columns": "1",
-    "base_month": f"{year}-{month}"
-}
+    payload = {
+        "action": "xo_event_calendar_month",
+        "id": "xo-event-calendar-1",
+        "month": f"{year}-{month}",
+        "base_month": f"{year}-{month}",
+        "event": "1",
+        "categories": "",
+        "holidays": "all",
+        "prev": "1",
+        "next": "-1",
+        "start_of_week": "1",
+        "months": "1",
+        "navigation": "1",
+        "columns": "1"
+    }
 
     res = post_with_retry(site["url"], payload)
 
@@ -127,7 +125,6 @@ payload = {
 
             print(f"{site['name']} {date} | {text}")
 
-            # 判定
             is_1 = ("1部○" in text) and ("1部×" not in text)
             is_2 = ("2部○" in text) and ("2部×" not in text)
 
@@ -136,11 +133,9 @@ payload = {
                 is_2 = False
 
             if is_1:
-                print("✅ ADD 1部:", date)
                 events.append({"site": site["name"], "date": date, "part": "1部"})
 
             if is_2:
-                print("✅ ADD 2部:", date)
                 events.append({"site": site["name"], "date": date, "part": "2部"})
 
     print(f"📦 {site['name']} events:", len(events))
@@ -164,10 +159,8 @@ def main():
             events = fetch_month(site, year, month)
             all_events.extend(events)
 
-    # フィルタ
     filtered = [e for e in all_events if e["date"] in target_dates]
 
-    # 重複削除
     unique = []
     seen = set()
 
@@ -177,14 +170,12 @@ def main():
             seen.add(key)
             unique.append(e)
 
-    # ソート
     unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
 
     print("\n==============================")
     print("📊 TOTAL:", len(unique))
     print("==============================")
 
-    # 保存
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(unique, f, ensure_ascii=False, indent=2)
 
