@@ -1,4 +1,71 @@
+import requests
+from bs4 import BeautifulSoup
+import json
+from datetime import datetime, timedelta
+import time
+
+# ===== 設定 =====
+TODAY = datetime.now()
+DAYS = 10
+
+SITES = [
+    {"name": "couleur", "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"},
+    {"name": "claris", "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php"},
+    {"name": "fuel", "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"}
+]
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept": "*/*",
+    "X-Requested-With": "XMLHttpRequest",
+    "Referer": "https://claris-studio-colore-mixbox.com/"
+}
+
+# ===== 正規化 =====
+def normalize(text):
+    return (
+        text.replace("⚪︎", "○")
+            .replace("◯", "○")
+            .replace(" ", "")
+            .replace("　", "")
+            .replace("\n", "")
+            .strip()
+    )
+
+# ===== 日付 =====
+def generate_target_dates():
+    return [
+        (TODAY + timedelta(days=i)).strftime("%Y-%m-%d")
+        for i in range(DAYS)
+    ]
+
+def get_target_months():
+    months = set()
+    for i in range(DAYS):
+        d = TODAY + timedelta(days=i)
+        months.add((d.year, d.month))
+    return list(months)
+
+# ===== 通信（リトライ） =====
+def post_with_retry(url, payload):
+
+    for i in range(3):
+        try:
+            print(f"🌐 TRY {i+1}: {url}")
+            res = requests.post(url, data=payload, headers=HEADERS, timeout=30)
+            print("✅ SUCCESS", res.status_code)
+            return res
+        except Exception as e:
+            print(f"❌ ERROR {i+1}:", e)
+            time.sleep(2)
+
+    print("🔥 ALL RETRY FAILED")
+    return None
+
+# ===== 月取得 =====
 def fetch_month(site, year, month):
+
+    print("\n🚀 FETCH START:", site["name"], year, month)
 
     payload = {
         "action": "xo_event_calendar_month",
@@ -7,11 +74,10 @@ def fetch_month(site, year, month):
         "base_month": f"{year}-{month}"
     }
 
-    print(f"\n🌐 {site['name']} {year}-{month}")
-
     res = post_with_retry(site["url"], payload)
+
     if res is None:
-        print("❌ FAILED")
+        print("❌ SKIP:", site["name"])
         return []
 
     print("STATUS:", res.status_code)
@@ -21,6 +87,10 @@ def fetch_month(site, year, month):
     weeks = soup.select(".month-week")
 
     print("🧩 weeks:", len(weeks))
+
+    if len(weeks) == 0:
+        print("⚠️ HTML SAMPLE:", res.text[:300])
+        return []
 
     events = []
 
@@ -48,6 +118,7 @@ def fetch_month(site, year, month):
 
             print(f"{site['name']} {date} | {text}")
 
+            # 判定
             is_1 = ("1部○" in text) and ("1部×" not in text)
             is_2 = ("2部○" in text) and ("2部×" not in text)
 
@@ -56,10 +127,60 @@ def fetch_month(site, year, month):
                 is_2 = False
 
             if is_1:
+                print("✅ ADD 1部:", date)
                 events.append({"site": site["name"], "date": date, "part": "1部"})
 
             if is_2:
+                print("✅ ADD 2部:", date)
                 events.append({"site": site["name"], "date": date, "part": "2部"})
 
     print(f"📦 {site['name']} events:", len(events))
     return events
+
+# ===== メイン =====
+def main():
+
+    print("🚀 START")
+
+    target_dates = set(generate_target_dates())
+    target_months = get_target_months()
+
+    print("🎯 TARGET:", target_dates)
+    print("📅 MONTHS:", target_months)
+
+    all_events = []
+
+    for site in SITES:
+        for (year, month) in target_months:
+            events = fetch_month(site, year, month)
+            all_events.extend(events)
+
+    # フィルタ
+    filtered = [e for e in all_events if e["date"] in target_dates]
+
+    # 重複削除
+    unique = []
+    seen = set()
+
+    for e in filtered:
+        key = (e["site"], e["date"], e["part"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(e)
+
+    # ソート
+    unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
+
+    print("\n==============================")
+    print("📊 TOTAL:", len(unique))
+    print("==============================")
+
+    # 保存
+    with open("docs/events.json", "w", encoding="utf-8") as f:
+        json.dump(unique, f, ensure_ascii=False, indent=2)
+
+    print("💾 saved docs/events.json")
+
+# ===== 実行 =====
+if __name__ == "__main__":
+    main()
