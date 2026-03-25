@@ -45,7 +45,7 @@ def get_target_months():
         months.add((d.year, d.month))
     return list(months)
 
-# ===== 通信 =====
+# ===== 通信（リトライ） =====
 def post_with_retry(url, payload):
     for i in range(3):
         try:
@@ -59,6 +59,32 @@ def post_with_retry(url, payload):
 
     print("🔥 ALL RETRY FAILED")
     return None
+
+# ===== 🔥 fuel対応：最終状態判定 =====
+def check_part(text, part):
+
+    # 貸切以降カット
+    if "貸切" in text:
+        text = text.split("貸切")[0]
+
+    results = []
+    i = 0
+
+    while i < len(text):
+        if text[i:i+3] == f"{part}○":
+            results.append("○")
+            i += 3
+        elif text[i:i+3] == f"{part}×":
+            results.append("×")
+            i += 3
+        else:
+            i += 1
+
+    if not results:
+        return False
+
+    # 最後の状態だけ採用
+    return results[-1] == "○"
 
 # ===== 月取得 =====
 def fetch_month(site, year, month):
@@ -125,14 +151,9 @@ def fetch_month(site, year, month):
 
             print(f"{site['name']} {date} | {text}")
 
-            # ===== 🔥 判定（改善版） =====
-
-            # 貸切以降カット
-            if "貸切" in text:
-                text = text.split("貸切")[0]
-
-            is_1 = "1部○" in text
-            is_2 = "2部○" in text
+            # ===== 判定 =====
+            is_1 = check_part(text, "1部")
+            is_2 = check_part(text, "2部")
 
             # 撮影NG除外
             if "撮影×" in text:
