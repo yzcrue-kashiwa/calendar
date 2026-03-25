@@ -15,8 +15,7 @@ SITES = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Accept": "*/*",
+    "User-Agent": "Mozilla/5.0",
     "X-Requested-With": "XMLHttpRequest"
 }
 
@@ -30,6 +29,12 @@ def normalize(text):
             .replace("\n", "")
             .strip()
     )
+
+# ===== 撮影除去（claris対策） =====
+def clean_text(text):
+    text = text.replace("撮影×", "")
+    text = text.replace("撮影○", "")
+    return text
 
 # ===== 日付 =====
 def generate_target_dates():
@@ -45,7 +50,7 @@ def get_target_months():
         months.add((d.year, d.month))
     return list(months)
 
-# ===== 通信（リトライ） =====
+# ===== 通信 =====
 def post_with_retry(url, payload):
     for i in range(3):
         try:
@@ -60,7 +65,7 @@ def post_with_retry(url, payload):
     print("🔥 ALL RETRY FAILED")
     return None
 
-# ===== 🔥 fuel対応：最終状態判定 =====
+# ===== 部判定（最終状態採用） =====
 def check_part(text, part):
 
     # 貸切以降カット
@@ -83,7 +88,7 @@ def check_part(text, part):
     if not results:
         return False
 
-    # 最後の状態だけ採用
+    # 最後の状態を採用
     return results[-1] == "○"
 
 # ===== 月取得 =====
@@ -149,16 +154,13 @@ def fetch_month(site, year, month):
                 if i < len(r):
                     text += normalize(r[i].get_text())
 
+            # 🔥 claris対策
+            text = clean_text(text)
+
             print(f"{site['name']} {date} | {text}")
 
-            # ===== 判定 =====
             is_1 = check_part(text, "1部")
             is_2 = check_part(text, "2部")
-
-            # 撮影NG除外
-            if "撮影×" in text:
-                is_1 = False
-                is_2 = False
 
             if is_1:
                 print("✅ ADD 1部:", date)
@@ -194,10 +196,9 @@ def main():
 
     for site in SITES:
         for (year, month) in target_months:
-            events = fetch_month(site, year, month)
-            all_events.extend(events)
+            all_events.extend(fetch_month(site, year, month))
 
-    # ===== 10日分に絞る =====
+    # ===== 期間絞り =====
     filtered = [e for e in all_events if e["date"] in target_dates]
 
     # ===== 重複削除 =====
