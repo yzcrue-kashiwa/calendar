@@ -13,6 +13,11 @@ SITES = [
     {"name": "fuel", "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"}
 ]
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "X-Requested-With": "XMLHttpRequest"
+}
+
 # ===== 文字正規化 =====
 def normalize(text):
     return (
@@ -32,88 +37,69 @@ def generate_target_dates():
     ]
 
 # ===== 対象月 =====
-def get_target_months(dates):
+def get_target_months():
     months = set()
-    for d in dates:
-        dt = datetime.strptime(d, "%Y-%m-%d")
-        months.add((dt.year, dt.month))
+    for i in range(DAYS):
+        d = TODAY + timedelta(days=i)
+        months.add((d.year, d.month))
     return list(months)
 
 # ===== 月取得 =====
-def fetch_month(site, year, month, target_dates):
+def fetch_month(site, year, month):
 
     payload = {
         "action": "xo_event_calendar_month",
         "id": "xo-event-calendar-1",
-        "month": f"{year}-{month}",
-        "event": "1",
-        "categories": "",
-        "holidays": "all",
-        "prev": "1",
-        "next": "-1",
-        "start_of_week": "1",
-        "months": "1",
-        "navigation": "1",
-        "title_format": "",
-        "is_locale": "1",
-        "columns": "1",
-        "base_month": f"{year}-{month}"
+        "year": year,
+        "month": f"{month:02d}",  # ← 重要
     }
 
     print(f"\n🌐 {site['name']} {year}-{month}")
-    res = requests.post(site["url"], data=payload)
+
+    try:
+        res = requests.post(site["url"], data=payload, headers=HEADERS, timeout=10)
+    except Exception as e:
+        print("❌ ERROR:", e)
+        return []
 
     print("STATUS:", res.status_code)
     print("LEN:", len(res.text))
 
     soup = BeautifulSoup(res.text, "html.parser")
+    weeks = soup.select(".month-week")
+
+    # ===== fallback（月ズレ対策） =====
+    if len(weeks) == 0:
+        print("⚠️ retry month-1")
+        payload["month"] = month - 1
+        res = requests.post(site["url"], data=payload, headers=HEADERS)
+        soup = BeautifulSoup(res.text, "html.parser")
+        weeks = soup.select(".month-week")
+
+    print("🧩 weeks:", len(weeks))
 
     events = []
 
-    weeks = soup.select("td.month-week")
-
     for week in weeks:
+        days = week.select("td")
 
-        days = week.select("table.month-dayname td div")
-        tables = week.select("table.month-event")
-        rows = [t.select("td") for t in tables]
-
-        for i, d in enumerate(days):
-
-            # 他月除外
-            if "other-month" in d.get("class", []):
+        for d in days:
+            date = d.get("data-date")
+            if not date:
                 continue
 
-            day = d.text.strip()
-            if not day.isdigit():
-                continue
+            text = normalize(d.get_text())
 
-            date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
+            # ===== 判定 =====
+            is_1 = ("1部○" in text) and ("1部×" not in text)
+            is_2 = ("2部○" in text) and ("2部×" not in text)
 
-            # 🎯 ピンポイント日付
-            if date not in target_dates:
-                continue
-
-            texts = []
-            for r in rows:
-                if i < len(r):
-                    texts.append(normalize(r[i].get_text()))
-
-            merged = "".join(texts)
-
-            print(f"{site['name']} {date} | {merged}")
-
-            # ===== 🔥 完全判定（fuel対応） =====
-            is_1 = ("1部○" in merged) and ("1部×" not in merged)
-            is_2 = ("2部○" in merged) and ("2部×" not in merged)
-
-            # 撮影NG除外（必要ならON）
-            if "撮影×" in merged:
+            # 撮影NG除外
+            if "撮影×" in text:
                 is_1 = False
                 is_2 = False
 
             if is_1:
-                print("✅ ADD 1部:", date)
                 events.append({
                     "site": site["name"],
                     "date": date,
@@ -121,7 +107,6 @@ def fetch_month(site, year, month, target_dates):
                 })
 
             if is_2:
-                print("✅ ADD 2部:", date)
                 events.append({
                     "site": site["name"],
                     "date": date,
@@ -134,64 +119,46 @@ def fetch_month(site, year, month, target_dates):
 # ===== メイン =====
 def main():
 
-    target_dates = generate_target_dates()
-    target_months = get_target_months(target_dates)
+    target_dates = set(generate_target_dates())
+    target_months = get_target_months()
 
-    print("🎯 TARGET DATES:", target_dates)
-    print("📅 TARGET MONTHS:", target_months)
+    print("🎯 TARGET:", target_dates)
+    print("📅 MONTHS:", target_months)
 
     all_events = []
 
+    # ===== 全取得（フィルタしない） =====
     for site in SITES:
         for (year, month) in target_months:
-            all_events.extend(fetch_month(site, year, month, target_dates))
+            events = fetch_month(site, year, month)
+            all_events.extend(events)
+
+    # ===== 10日分に絞る =====
+    filtered = [e for e in all_events if e["date"] in target_dates]
 
     # ===== 重複削除 =====
     unique = []
     seen = set()
 
-    for e in all_events:
+    for e in filtered:
         key = (e["site"], e["date"], e["part"])
         if key not in seen:
             seen.add(key)
             unique.append(e)
+
     # ===== ソート =====
     unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
 
-    # ===== 今月・来月分け =====
-    current_month = TODAY.month
-    current_year = TODAY.year
-
-    next_base = TODAY.replace(day=28) + timedelta(days=4)
-    next_month = next_base.month
-    next_year = next_base.year
-
-    current_events = []
-    next_events = []
-
-    for e in unique:
-        dt = datetime.strptime(e["date"], "%Y-%m-%d")
-
-        if dt.year == current_year and dt.month == current_month:
-            current_events.append(e)
-
-        elif dt.year == next_year and dt.month == next_month:
-            next_events.append(e)
-
     print("\n==============================")
     print("📊 TOTAL:", len(unique))
-    print("📅 今月:", len(current_events))
-    print("📅 来月:", len(next_events))
     print("==============================")
 
     # ===== 保存 =====
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(unique, f, ensure_ascii=False, indent=2)
 
-    with open("docs/events_current.json", "w", encoding="utf-8") as f:
-        json.dump(current_events, f, ensure_ascii=False, indent=2)
+    print("💾 saved docs/events.json")
 
-    with open("docs/events_next.json", "w", encoding="utf-8") as f:
-        json.dump(next_events, f, ensure_ascii=False, indent=2)
-
-    print("💾 saved all files")
+# ===== 実行 =====
+if __name__ == "__main__":
+    main()
