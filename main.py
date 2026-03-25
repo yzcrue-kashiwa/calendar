@@ -155,7 +155,6 @@ def main():
         if key not in seen:
             seen.add(key)
             unique.append(e)
-
     # ===== ソート =====
     unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
 
@@ -193,4 +192,6 @@ def main():
         json.dump(current_events, f, ensure_ascii=False, indent=2)
 
     with open("docs/events_next.json", "w", encoding="utf-8") as f:
-        json.dump(next_events, f,
+        json.dump(next_events, f, ensure_ascii=False, indent=2)
+
+    print("💾 saved all files")
