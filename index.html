@@ -18,10 +18,7 @@ h1 { text-align:center; }
   margin:0 auto;
 }
 
-.header {
-  text-align:center;
-  font-weight:bold;
-}
+.header { text-align:center; font-weight:bold; }
 
 .day {
   border:1px solid #ccc;
@@ -32,6 +29,8 @@ h1 { text-align:center; }
 .today { border:2px solid red; }
 .sat { background:#e6f0ff; }
 .sun { background:#ffe6e6; }
+
+.empty { opacity:0.3; }
 
 .date { font-weight:bold; }
 
@@ -45,8 +44,6 @@ h1 { text-align:center; }
 .couleur { background:#cb0cc8; color:#fff; }
 .claris  { background:#0000cb; color:#fff; }
 .fuel    { background:#2cb4ad; color:#fff; }
-
-.empty { opacity:0.4; }
 </style>
 </head>
 
@@ -57,12 +54,14 @@ h1 { text-align:center; }
 <div id="calendar"></div>
 
 <script>
+const DAYS = 10;
 const calendar = document.getElementById("calendar");
 const info = document.getElementById("info");
 
 const today = new Date();
+today.setHours(0,0,0,0);
 
-// ===== utils =====
+// util
 function formatDate(d){
   return d.toISOString().slice(0,10);
 }
@@ -71,7 +70,6 @@ function formatJP(d){
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
 
-// 月曜始まり
 function getWeekIndex(d){
   return d.getDay() === 0 ? 6 : d.getDay() - 1;
 }
@@ -83,12 +81,11 @@ function getDayClass(d){
   return "";
 }
 
-// ===== カレンダー描画 =====
+// ⭐ここが核心
 function createCalendar(events){
 
   calendar.innerHTML = "";
 
-  // 曜日
   ["月","火","水","木","金","土","日"].forEach(d=>{
     const el=document.createElement("div");
     el.className="header";
@@ -96,14 +93,14 @@ function createCalendar(events){
     calendar.appendChild(el);
   });
 
-  // ⭐ここ重要：最初の空白
+  // 空白
   const startIndex = getWeekIndex(today);
   for(let i=0;i<startIndex;i++){
     calendar.appendChild(document.createElement("div"));
   }
 
-  // ⭐10日ループ
-  for(let i=0;i<10;i++){
+  // 🔥日付ループ
+  for(let i=0;i<DAYS;i++){
 
     const d = new Date(today);
     d.setDate(today.getDate()+i);
@@ -115,21 +112,18 @@ function createCalendar(events){
 
     if(i===0) div.classList.add("today");
 
-    const dayEvents = events.filter(e=>e.date===dateStr);
+    const dayEvents = events.filter(e => e.date === dateStr);
 
-    // 日付
     const dateEl = document.createElement("div");
     dateEl.className="date";
-    dateEl.textContent=`${formatJP(d)} (${dayEvents.length})`;
+    dateEl.textContent = `${formatJP(d)} (${dayEvents.length})`;
 
     div.appendChild(dateEl);
 
-    // 空日
     if(dayEvents.length===0){
       div.classList.add("empty");
     }
 
-    // イベント
     dayEvents.forEach(e=>{
       const ev=document.createElement("div");
       ev.className=`event ${e.site}`;
@@ -141,23 +135,17 @@ function createCalendar(events){
   }
 }
 
-// ===== 情報 =====
-function showInfo(){
-  const now=new Date();
-  info.innerHTML=`
-    今日: ${formatJP(today)}　
-    更新: ${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}
-  `;
-}
-
-// ===== fetch =====
-fetch("https://yzcrue-kashiwa.github.io/calendar/events.json")
+// fetch
+fetch("https://yzcrue-kashiwa.github.io/calendar/docs/events.json?" + Date.now())
   .then(res=>res.json())
   .then(data=>{
+    console.log("EVENTS:", data);
     createCalendar(data);
-    showInfo();
-  });
 
+    const now = new Date();
+    info.textContent =
+      `今日: ${formatJP(today)} / 更新: ${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}`;
+  });
 </script>
 
 </body>
