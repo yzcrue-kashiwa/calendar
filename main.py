@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 import json
 
 SITES = {
-    "couleur": "https://couleur.studio-colore.tokyo/yoyaku-toiawase/",
-    "claris": "https://claris-studio-colore-mixbox.com/reserve/",
-    "fuel": "https://fuel-studio-colore.com/reserve/"
+    "couleur": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php",
+    "claris": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php",
+    "fuel": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"
 }
 
 # ===== 10日分 =====
