@@ -10,42 +10,60 @@ body {
   padding: 20px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 10px;
+h2 {
+  margin-bottom: 5px;
 }
 
-.day {
-  border: 1px solid #ccc;
-  padding: 10px;
+/* ===== グリッド ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+/* ===== 曜日ヘッダー ===== */
+.header {
+  font-weight: bold;
   text-align: center;
 }
 
+/* ===== 日付セル ===== */
+.day {
+  border: 1px solid #ccc;
+  min-height: 80px;
+  padding: 5px;
+  font-size: 13px;
+}
+
+/* 今日 */
 .today {
   background: #ffe0e0;
 }
 
-.sat {
-  color: blue;
-}
+/* 土日 */
+.sun { color: red; }
+.sat { color: blue; }
 
-.sun {
-  color: red;
-}
-
-.ok {
-  background: #c8f7c5;
-  margin: 2px;
+/* ===== イベント ===== */
+.event {
+  margin: 2px 0;
   padding: 2px;
-  font-size: 12px;
+  font-size: 11px;
+  border-radius: 3px;
+  color: #fff;
 }
+
+/* 店舗色 */
+.couleur { background: #ff7aa2; }
+.claris { background: #4da6ff; }
+.fuel { background: #ff9f40; }
+
 </style>
 </head>
 
 <body>
 
-<h2>予約状況</h2>
+<h2>予約カレンダー</h2>
 <p id="info"></p>
 
 <div class="grid" id="calendar"></div>
@@ -53,6 +71,7 @@ body {
 <script>
 const DAYS = 10;
 
+// ===== 日付フォーマット =====
 function formatDate(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth()+1).padStart(2,"0");
@@ -60,27 +79,40 @@ function formatDate(d) {
   return `${y}-${m}-${day}`;
 }
 
-function getDates() {
-  const dates = [];
-  const today = new Date();
+// ===== 月曜始まり用調整 =====
+function getStartMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  d.setDate(d.getDate() + diff);
+  return d;
+}
 
-  for (let i = 0; i < DAYS; i++) {
-    const d = new Date();
-    d.setDate(today.getDate() + i);
-    dates.push(new Date(d));
+// ===== カレンダー日付生成 =====
+function getCalendarDates() {
+  const today = new Date();
+  const start = getStartMonday(today);
+
+  const dates = [];
+
+  for (let i = 0; i < 14; i++) { // 2週間分
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    dates.push(d);
   }
+
   return dates;
 }
 
+// ===== メイン =====
 async function load() {
 
   const res = await fetch("events.json?" + Date.now());
   const data = await res.json();
 
-  console.log("EVENTS:", data);
+  console.log(data);
 
   const map = {};
-
   data.forEach(e => {
     if (!map[e.date]) map[e.date] = [];
     map[e.date].push(e);
@@ -89,25 +121,36 @@ async function load() {
   const calendar = document.getElementById("calendar");
   calendar.innerHTML = "";
 
-  const dates = getDates();
+  // ===== 曜日ヘッダー（月曜始まり）=====
+  const days = ["月","火","水","木","金","土","日"];
+  days.forEach(d => {
+    const div = document.createElement("div");
+    div.className = "header";
+    div.textContent = d;
+    calendar.appendChild(div);
+  });
 
-  dates.forEach((d, i) => {
+  const todayStr = formatDate(new Date());
+  const dates = getCalendarDates();
+
+  dates.forEach(d => {
 
     const dateStr = formatDate(d);
 
     const div = document.createElement("div");
     div.className = "day";
 
-    if (i === 0) div.classList.add("today");
+    if (dateStr === todayStr) div.classList.add("today");
     if (d.getDay() === 0) div.classList.add("sun");
     if (d.getDay() === 6) div.classList.add("sat");
 
     div.innerHTML = `<b>${d.getMonth()+1}/${d.getDate()}</b>`;
 
+    // ===== イベント描画 =====
     if (map[dateStr]) {
       map[dateStr].forEach(ev => {
         const el = document.createElement("div");
-        el.className = "ok";
+        el.className = `event ${ev.site}`;
         el.textContent = `${ev.site} ${ev.part}`;
         div.appendChild(el);
       });
@@ -116,10 +159,10 @@ async function load() {
     calendar.appendChild(div);
   });
 
-  // 更新情報
+  // ===== 更新情報 =====
   const now = new Date();
   document.getElementById("info").textContent =
-    `取得日: ${formatDate(now)} / 更新: ${now.toLocaleTimeString()}`;
+    `取得日: ${todayStr} / 更新: ${now.toLocaleTimeString()}`;
 }
 
 load();
