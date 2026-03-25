@@ -15,7 +15,7 @@ SITES = [
 ]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     "Accept": "*/*",
     "X-Requested-With": "XMLHttpRequest"
 }
@@ -125,18 +125,35 @@ def fetch_month(site, year, month):
 
             print(f"{site['name']} {date} | {text}")
 
-            is_1 = ("1部○" in text) and ("1部×" not in text)
-            is_2 = ("2部○" in text) and ("2部×" not in text)
+            # ===== 🔥 判定（改善版） =====
 
+            # 貸切以降カット
+            if "貸切" in text:
+                text = text.split("貸切")[0]
+
+            is_1 = "1部○" in text
+            is_2 = "2部○" in text
+
+            # 撮影NG除外
             if "撮影×" in text:
                 is_1 = False
                 is_2 = False
 
             if is_1:
-                events.append({"site": site["name"], "date": date, "part": "1部"})
+                print("✅ ADD 1部:", date)
+                events.append({
+                    "site": site["name"],
+                    "date": date,
+                    "part": "1部"
+                })
 
             if is_2:
-                events.append({"site": site["name"], "date": date, "part": "2部"})
+                print("✅ ADD 2部:", date)
+                events.append({
+                    "site": site["name"],
+                    "date": date,
+                    "part": "2部"
+                })
 
     print(f"📦 {site['name']} events:", len(events))
     return events
@@ -159,8 +176,10 @@ def main():
             events = fetch_month(site, year, month)
             all_events.extend(events)
 
+    # ===== 10日分に絞る =====
     filtered = [e for e in all_events if e["date"] in target_dates]
 
+    # ===== 重複削除 =====
     unique = []
     seen = set()
 
@@ -170,12 +189,14 @@ def main():
             seen.add(key)
             unique.append(e)
 
+    # ===== ソート =====
     unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
 
     print("\n==============================")
     print("📊 TOTAL:", len(unique))
     print("==============================")
 
+    # ===== 保存 =====
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(unique, f, ensure_ascii=False, indent=2)
 
