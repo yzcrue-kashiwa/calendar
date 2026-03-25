@@ -70,14 +70,13 @@ function getDisplayDates() {
   const today = new Date()
   const day = today.getDay()
 
-  // 月曜始まり
   const mondayOffset = (day === 0 ? -6 : 1 - day)
 
   const start = new Date(today)
   start.setDate(today.getDate() + mondayOffset)
 
   const end = new Date(start)
-  end.setDate(start.getDate() + 20) // 3週間
+  end.setDate(start.getDate() + 20)
 
   const dates = []
   let cur = new Date(start)
@@ -90,7 +89,7 @@ function getDisplayDates() {
   return dates
 }
 
-// ===== メイン描画 =====
+// ===== メイン =====
 async function render() {
 
   try {
@@ -102,9 +101,6 @@ async function render() {
     const cal = document.getElementById("calendar")
     cal.innerHTML = ""
 
-    const updated = document.getElementById("updated")
-    updated.innerText = "最終更新: " + new Date().toLocaleString()
-
     const today = new Date()
     today.setHours(0,0,0,0)
 
@@ -115,6 +111,7 @@ async function render() {
       const el = document.createElement("div")
       el.className = "day"
 
+      // ✅ 修正ポイント（ここ超重要）
       const d2 = new Date(d)
       d2.setHours(0,0,0,0)
 
@@ -125,7 +122,6 @@ async function render() {
       const dateStr = formatDate(d)
 
       const dateEl = document.createElement("div")
-      dateEl.className = "date"
       dateEl.innerText = dateStr
       el.appendChild(dateEl)
 
@@ -135,8 +131,7 @@ async function render() {
 
       dayEvents.forEach(e => {
         const ev = document.createElement("div")
-        ev.className = "event"
-        ev.innerText = `${e.site} ${e.part}`
+        ev.innerText = e.site + " " + e.part
         el.appendChild(ev)
       })
 
@@ -144,11 +139,10 @@ async function render() {
     })
 
   } catch (e) {
-    console.error("表示エラー:", e)
+    console.error("エラー:", e)
   }
 }
 
-// ===== 実行 =====
 render()
 
 </script>
