@@ -2,30 +2,86 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>予約カレンダー</title>
 
 <style>
 body {
   font-family: sans-serif;
-  padding: 20px;
+  padding: 10px;
 }
 
+/* 更新日時 */
+#updated {
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: #666;
+}
+
+/* カレンダー */
 #calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 5px;
 }
 
+/* 日付セル */
 .day {
   border: 1px solid #ccc;
-  padding: 6px;
+  padding: 5px;
   min-height: 80px;
   font-size: 12px;
+  border-radius: 6px;
 }
 
+/* 過去日 */
 .past {
   background: #eee;
   color: #999;
+}
+
+/* 日付 */
+.date {
+  font-weight: bold;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+/* イベント共通 */
+.event {
+  font-size: 11px;
+  margin: 2px 0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #fff;
+}
+
+/* 店ごと色 */
+.couleur { background: #3498db; }
+.claris  { background: #e91e63; }
+.fuel    { background: #ff9800; }
+
+/* ===== スマホ最適化 ===== */
+@media (max-width: 600px) {
+
+  #calendar {
+    gap: 3px;
+  }
+
+  .day {
+    min-height: 70px;
+    font-size: 10px;
+    padding: 4px;
+  }
+
+  .date {
+    font-size: 10px;
+  }
+
+  .event {
+    font-size: 9px;
+    padding: 2px;
+  }
 }
 </style>
 </head>
@@ -46,12 +102,11 @@ function formatDate(d) {
   return `${y}-${m}-${day}`
 }
 
-// ===== 表示範囲（今週〜翌々週日曜） =====
+// ===== 表示範囲 =====
 function getDisplayDates() {
   const today = new Date()
   const day = today.getDay()
 
-  // 月曜始まり
   const mondayOffset = (day === 0 ? -6 : 1 - day)
 
   const start = new Date(today)
@@ -75,7 +130,7 @@ function getDisplayDates() {
 async function render() {
 
   try {
-    const res = await fetch("./events.json?v=" + Date.now())
+    const res = await fetch("./doc/events.json?v=" + Date.now())
     const events = await res.json()
 
     console.log("EVENTS:", events)
@@ -105,21 +160,25 @@ async function render() {
 
       const dateStr = formatDate(d)
 
-      // 日付表示
+      // 日付
       const dateEl = document.createElement("div")
+      dateEl.className = "date"
       dateEl.innerText = dateStr
       el.appendChild(dateEl)
 
-      // 🔥 ここが重要（ズレ対策）
+      // 🔥 日付ズレ対策
       const dayEvents = events.filter(e => 
         e.date.slice(0,10) === dateStr
       )
 
-      console.log(dateStr, dayEvents)
-
       dayEvents.forEach(e => {
         const ev = document.createElement("div")
-        ev.innerText = e.site + " " + e.part
+
+        // 店ごと色
+        ev.className = "event " + e.site
+
+        ev.innerText = e.part
+
         el.appendChild(ev)
       })
 
