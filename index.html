@@ -10,16 +10,10 @@ body {
   padding: 20px;
 }
 
-#updated {
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: #666;
-}
-
 #calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
 .day {
@@ -32,19 +26,6 @@ body {
 .past {
   background: #eee;
   color: #999;
-}
-
-.date {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
-.event {
-  font-size: 11px;
-  margin: 2px 0;
-  padding: 2px;
-  border-radius: 3px;
-  background: #dff;
 }
 </style>
 </head>
@@ -70,6 +51,7 @@ function getDisplayDates() {
   const today = new Date()
   const day = today.getDay()
 
+  // 月曜始まり
   const mondayOffset = (day === 0 ? -6 : 1 - day)
 
   const start = new Date(today)
@@ -101,6 +83,9 @@ async function render() {
     const cal = document.getElementById("calendar")
     cal.innerHTML = ""
 
+    const updated = document.getElementById("updated")
+    updated.innerText = "最終更新: " + new Date().toLocaleString()
+
     const today = new Date()
     today.setHours(0,0,0,0)
 
@@ -111,7 +96,6 @@ async function render() {
       const el = document.createElement("div")
       el.className = "day"
 
-      // ✅ 修正ポイント（ここ超重要）
       const d2 = new Date(d)
       d2.setHours(0,0,0,0)
 
@@ -121,11 +105,15 @@ async function render() {
 
       const dateStr = formatDate(d)
 
+      // 日付表示
       const dateEl = document.createElement("div")
       dateEl.innerText = dateStr
       el.appendChild(dateEl)
 
-      const dayEvents = events.filter(e => e.date === dateStr)
+      // 🔥 ここが重要（ズレ対策）
+      const dayEvents = events.filter(e => 
+        e.date.slice(0,10) === dateStr
+      )
 
       console.log(dateStr, dayEvents)
 
