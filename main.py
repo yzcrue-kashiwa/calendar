@@ -159,16 +159,38 @@ def main():
     # ===== ソート =====
     unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
 
+    # ===== 今月・来月分け =====
+    current_month = TODAY.month
+    current_year = TODAY.year
+
+    next_base = TODAY.replace(day=28) + timedelta(days=4)
+    next_month = next_base.month
+    next_year = next_base.year
+
+    current_events = []
+    next_events = []
+
+    for e in unique:
+        dt = datetime.strptime(e["date"], "%Y-%m-%d")
+
+        if dt.year == current_year and dt.month == current_month:
+            current_events.append(e)
+
+        elif dt.year == next_year and dt.month == next_month:
+            next_events.append(e)
+
     print("\n==============================")
     print("📊 TOTAL:", len(unique))
+    print("📅 今月:", len(current_events))
+    print("📅 来月:", len(next_events))
     print("==============================")
 
     # ===== 保存 =====
     with open("docs/events.json", "w", encoding="utf-8") as f:
         json.dump(unique, f, ensure_ascii=False, indent=2)
 
-    print("💾 saved docs/events.json")
+    with open("docs/events_current.json", "w", encoding="utf-8") as f:
+        json.dump(current_events, f, ensure_ascii=False, indent=2)
 
-# ===== 実行 =====
-if __name__ == "__main__":
-    main()
+    with open("docs/events_next.json", "w", encoding="utf-8") as f:
+        json.dump(next_events, f,
