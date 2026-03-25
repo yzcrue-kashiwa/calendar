@@ -2,167 +2,153 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>空き状況カレンダー</title>
+<title>予約カレンダー</title>
 
 <style>
 body {
-    font-family: sans-serif;
-    background: #f7f7f7;
-    padding: 20px;
-}
-
-h1 {
-    text-align: center;
+  font-family: sans-serif;
+  padding: 20px;
 }
 
 #updated {
-    text-align: center;
-    font-size: 14px;
-    margin-bottom: 10px;
-    color: #666;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #666;
 }
 
-.calendar {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
+#calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
 }
 
 .day {
-    background: white;
-    padding: 8px;
-    border-radius: 8px;
-    min-height: 80px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.header {
-    font-weight: bold;
-    text-align: center;
-    background: #333;
-    color: white;
+  border: 1px solid #ccc;
+  padding: 6px;
+  min-height: 80px;
+  font-size: 12px;
 }
 
 .past {
-    background: #ddd;
-    color: #999;
+  background: #eee;
+  color: #999;
 }
 
 .date {
-    font-size: 12px;
-    margin-bottom: 4px;
+  font-weight: bold;
+  margin-bottom: 4px;
 }
 
 .event {
-    font-size: 12px;
-    margin: 2px 0;
-    padding: 2px 4px;
-    border-radius: 4px;
-    color: white;
+  font-size: 11px;
+  margin: 2px 0;
+  padding: 2px;
+  border-radius: 3px;
+  background: #dff;
 }
-
-/* 店舗カラー */
-.couleur { background: #e91e63; }
-.claris { background: #2196f3; }
-.fuel { background: #4caf50; }
-
 </style>
 </head>
+
 <body>
 
-<h1>空き状況</h1>
+<h2>予約カレンダー</h2>
 <div id="updated"></div>
-<div class="calendar" id="calendar"></div>
+<div id="calendar"></div>
 
 <script>
 
-const DAYS = ["月","火","水","木","金","土","日"]
-
-// ===== 今週〜翌々週日曜 =====
-function getDisplayDates() {
-
-    const today = new Date()
-    const day = today.getDay() || 7 // 月=1
-
-    // 今週月曜
-    const start = new Date(today)
-    start.setDate(today.getDate() - (day - 1))
-
-    // 翌々週日曜
-    const end = new Date(start)
-    end.setDate(start.getDate() + 20)
-
-    const dates = []
-    let d = new Date(start)
-
-    while (d <= end) {
-        dates.push(new Date(d))
-        d.setDate(d.getDate() + 1)
-    }
-
-    return dates
-}
-
 // ===== 日付フォーマット =====
 function formatDate(d) {
-    return d.toISOString().slice(0,10)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
-// ===== カレンダー描画 =====
+// ===== 表示範囲（今週〜翌々週日曜） =====
+function getDisplayDates() {
+  const today = new Date()
+  const day = today.getDay()
+
+  // 月曜始まり
+  const mondayOffset = (day === 0 ? -6 : 1 - day)
+
+  const start = new Date(today)
+  start.setDate(today.getDate() + mondayOffset)
+
+  const end = new Date(start)
+  end.setDate(start.getDate() + 20) // 3週間
+
+  const dates = []
+  let cur = new Date(start)
+
+  while (cur <= end) {
+    dates.push(new Date(cur))
+    cur.setDate(cur.getDate() + 1)
+  }
+
+  return dates
+}
+
+// ===== メイン描画 =====
 async function render() {
 
-    const res = await fetch("events.json")
+  try {
+    const res = await fetch("./events.json?v=" + Date.now())
     const events = await res.json()
 
+    console.log("EVENTS:", events)
+
     const cal = document.getElementById("calendar")
+    cal.innerHTML = ""
 
-    // ===== 更新時刻 =====
-    document.getElementById("updated").innerText =
-        "更新: " + new Date().toLocaleString()
+    const updated = document.getElementById("updated")
+    updated.innerText = "最終更新: " + new Date().toLocaleString()
 
-    // ===== 曜日ヘッダ =====
-    DAYS.forEach(d => {
-        const el = document.createElement("div")
-        el.className = "day header"
-        el.innerText = d
-        cal.appendChild(el)
-    })
+    const today = new Date()
+    today.setHours(0,0,0,0)
 
     const dates = getDisplayDates()
-    const today = new Date()
 
     dates.forEach(d => {
 
-        const el = document.createElement("div")
-        el.className = "day"
+      const el = document.createElement("div")
+      el.className = "day"
 
-        const dateStr = formatDate(d)
+      const d2 = new Date(d)
+      d2.setHours(0,0,0,0)
 
-        // 過去グレー
-        if (d < today.setHours(0,0,0,0)) {
-            el.classList.add("past")
-        }
+      if (d2 < today) {
+        el.classList.add("past")
+      }
 
-        // 日付表示
-        const dateEl = document.createElement("div")
-        dateEl.className = "date"
-        dateEl.innerText = dateStr.slice(5)
-        el.appendChild(dateEl)
+      const dateStr = formatDate(d)
 
-        // イベント抽出
-        const dayEvents = events.filter(e => e.date === dateStr)
+      const dateEl = document.createElement("div")
+      dateEl.className = "date"
+      dateEl.innerText = dateStr
+      el.appendChild(dateEl)
 
-        dayEvents.forEach(e => {
-            const ev = document.createElement("div")
-            ev.className = "event " + e.site
-            ev.innerText = `${e.site} ${e.part}`
-            el.appendChild(ev)
-        })
+      const dayEvents = events.filter(e => e.date === dateStr)
 
-        cal.appendChild(el)
+      console.log(dateStr, dayEvents)
+
+      dayEvents.forEach(e => {
+        const ev = document.createElement("div")
+        ev.className = "event"
+        ev.innerText = `${e.site} ${e.part}`
+        el.appendChild(ev)
+      })
+
+      cal.appendChild(el)
     })
+
+  } catch (e) {
+    console.error("表示エラー:", e)
+  }
 }
 
+// ===== 実行 =====
 render()
 
 </script>
