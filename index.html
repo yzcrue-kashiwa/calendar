@@ -1,174 +1,129 @@
-import requests
-from bs4 import BeautifulSoup
-import json
-from datetime import datetime, timedelta
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>予約カレンダー</title>
 
-# ===== 設定 =====
-TODAY = datetime.now()
-DAYS = 10
+<style>
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
 
-SITES = [
-    {"name": "couleur", "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"},
-    {"name": "claris", "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php"},
-    {"name": "fuel", "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"}
-]
+.grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 10px;
+}
 
-# ===== 文字正規化 =====
-def normalize(text):
-    return (
-        text.replace("⚪︎", "○")
-            .replace("◯", "○")
-            .replace(" ", "")
-            .replace("　", "")
-            .replace("\n", "")
-            .strip()
-    )
+.day {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
 
-# ===== 対象日 =====
-def generate_target_dates():
-    return [
-        (TODAY + timedelta(days=i)).strftime("%Y-%m-%d")
-        for i in range(DAYS)
-    ]
+.today {
+  background: #ffe0e0;
+}
 
-# ===== 対象月 =====
-def get_target_months(dates):
-    months = set()
-    for d in dates:
-        dt = datetime.strptime(d, "%Y-%m-%d")
-        months.add((dt.year, dt.month))
-    return list(months)
+.sat {
+  color: blue;
+}
 
-# ===== 月取得 =====
-def fetch_month(site, year, month, target_dates):
+.sun {
+  color: red;
+}
 
-    payload = {
-        "action": "xo_event_calendar_month",
-        "id": "xo-event-calendar-1",
-        "month": f"{year}-{month}",
-        "event": "1",
-        "categories": "",
-        "holidays": "all",
-        "prev": "1",
-        "next": "-1",
-        "start_of_week": "1",
-        "months": "1",
-        "navigation": "1",
-        "title_format": "",
-        "is_locale": "1",
-        "columns": "1",
-        "base_month": f"{year}-{month}"
+.ok {
+  background: #c8f7c5;
+  margin: 2px;
+  padding: 2px;
+  font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>予約状況</h2>
+<p id="info"></p>
+
+<div class="grid" id="calendar"></div>
+
+<script>
+const DAYS = 10;
+
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function getDates() {
+  const dates = [];
+  const today = new Date();
+
+  for (let i = 0; i < DAYS; i++) {
+    const d = new Date();
+    d.setDate(today.getDate() + i);
+    dates.push(new Date(d));
+  }
+  return dates;
+}
+
+async function load() {
+
+  const res = await fetch("events.json?" + Date.now());
+  const data = await res.json();
+
+  console.log("EVENTS:", data);
+
+  const map = {};
+
+  data.forEach(e => {
+    if (!map[e.date]) map[e.date] = [];
+    map[e.date].push(e);
+  });
+
+  const calendar = document.getElementById("calendar");
+  calendar.innerHTML = "";
+
+  const dates = getDates();
+
+  dates.forEach((d, i) => {
+
+    const dateStr = formatDate(d);
+
+    const div = document.createElement("div");
+    div.className = "day";
+
+    if (i === 0) div.classList.add("today");
+    if (d.getDay() === 0) div.classList.add("sun");
+    if (d.getDay() === 6) div.classList.add("sat");
+
+    div.innerHTML = `<b>${d.getMonth()+1}/${d.getDate()}</b>`;
+
+    if (map[dateStr]) {
+      map[dateStr].forEach(ev => {
+        const el = document.createElement("div");
+        el.className = "ok";
+        el.textContent = `${ev.site} ${ev.part}`;
+        div.appendChild(el);
+      });
     }
 
-    print(f"\n🌐 {site['name']} {year}-{month}")
-    res = requests.post(site["url"], data=payload)
+    calendar.appendChild(div);
+  });
 
-    print("STATUS:", res.status_code)
-    print("LEN:", len(res.text))
+  // 更新情報
+  const now = new Date();
+  document.getElementById("info").textContent =
+    `取得日: ${formatDate(now)} / 更新: ${now.toLocaleTimeString()}`;
+}
 
-    soup = BeautifulSoup(res.text, "html.parser")
+load();
+</script>
 
-    events = []
-
-    weeks = soup.select("td.month-week")
-
-    for week in weeks:
-
-        days = week.select("table.month-dayname td div")
-        tables = week.select("table.month-event")
-        rows = [t.select("td") for t in tables]
-
-        for i, d in enumerate(days):
-
-            # 他月除外
-            if "other-month" in d.get("class", []):
-                continue
-
-            day = d.text.strip()
-            if not day.isdigit():
-                continue
-
-            date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
-
-            # 🎯 ピンポイント日付
-            if date not in target_dates:
-                continue
-
-            texts = []
-            for r in rows:
-                if i < len(r):
-                    texts.append(normalize(r[i].get_text()))
-
-            merged = "".join(texts)
-
-            print(f"{site['name']} {date} | {merged}")
-
-            # ===== 🔥 完全判定（fuel対応） =====
-            is_1 = ("1部○" in merged) and ("1部×" not in merged)
-            is_2 = ("2部○" in merged) and ("2部×" not in merged)
-
-            # 撮影NG除外（必要ならON）
-            if "撮影×" in merged:
-                is_1 = False
-                is_2 = False
-
-            if is_1:
-                print("✅ ADD 1部:", date)
-                events.append({
-                    "site": site["name"],
-                    "date": date,
-                    "part": "1部"
-                })
-
-            if is_2:
-                print("✅ ADD 2部:", date)
-                events.append({
-                    "site": site["name"],
-                    "date": date,
-                    "part": "2部"
-                })
-
-    print(f"📦 {site['name']} events:", len(events))
-    return events
-
-# ===== メイン =====
-def main():
-
-    target_dates = generate_target_dates()
-    target_months = get_target_months(target_dates)
-
-    print("🎯 TARGET DATES:", target_dates)
-    print("📅 TARGET MONTHS:", target_months)
-
-    all_events = []
-
-    for site in SITES:
-        for (year, month) in target_months:
-            all_events.extend(fetch_month(site, year, month, target_dates))
-
-    # ===== 重複削除 =====
-    unique = []
-    seen = set()
-
-    for e in all_events:
-        key = (e["site"], e["date"], e["part"])
-        if key not in seen:
-            seen.add(key)
-            unique.append(e)
-
-    # ===== ソート =====
-    unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
-
-    print("\n==============================")
-    print("📊 TOTAL:", len(unique))
-    print("==============================")
-
-    # ===== 保存 =====
-    with open("docs/events.json", "w", encoding="utf-8") as f:
-        json.dump(unique, f, ensure_ascii=False, indent=2)
-
-    print("💾 saved docs/events.json")
-
-# ===== 実行 =====
-if __name__ == "__main__":
-    main()
+</body>
+</html>
