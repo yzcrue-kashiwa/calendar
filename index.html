@@ -130,7 +130,7 @@ function getDisplayDates() {
 async function render() {
 
   try {
-    const res = await fetch("./doc/events.json?v=" + Date.now())
+    const res = await fetch("./docs/events.json?v=" + Date.now())
     const events = await res.json()
 
     console.log("EVENTS:", events)
