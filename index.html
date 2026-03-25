@@ -2,144 +2,168 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>空き状況確認用カレンダー</title>
+<title>空き状況カレンダー</title>
 
 <style>
 body {
-  font-family: sans-serif;
-  padding: 20px;
+    font-family: sans-serif;
+    background: #f7f7f7;
+    padding: 20px;
 }
 
 h1 {
-  margin-bottom: 5px;
+    text-align: center;
 }
 
 #updated {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 20px;
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #666;
 }
 
 .calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
 }
 
 .day {
-  border: 1px solid #ccc;
-  padding: 6px;
-  min-height: 80px;
-  font-size: 12px;
+    background: white;
+    padding: 8px;
+    border-radius: 8px;
+    min-height: 80px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .header {
-  font-weight: bold;
-  text-align: center;
-  background: #eee;
+    font-weight: bold;
+    text-align: center;
+    background: #333;
+    color: white;
 }
 
 .past {
-  background: #f5f5f5;
-  color: #aaa;
+    background: #ddd;
+    color: #999;
 }
 
 .date {
-  font-weight: bold;
-  margin-bottom: 4px;
+    font-size: 12px;
+    margin-bottom: 4px;
 }
-
-/* 店舗色 */
-.couleur { color: #e91e63; }
-.claris { color: #3f51b5; }
-.fuel { color: #009688; }
 
 .event {
-  margin: 2px 0;
-  font-size: 11px;
+    font-size: 12px;
+    margin: 2px 0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: white;
 }
+
+/* 店舗カラー */
+.couleur { background: #e91e63; }
+.claris { background: #2196f3; }
+.fuel { background: #4caf50; }
+
 </style>
 </head>
-
 <body>
 
-<h1>予約カレンダー</h1>
+<h1>空き状況</h1>
 <div id="updated"></div>
-
 <div class="calendar" id="calendar"></div>
 
 <script>
 
-fetch("events.json")
-  .then(res => res.json())
-  .then(data => {
+const DAYS = ["月","火","水","木","金","土","日"]
 
-    const cal = document.getElementById("calendar");
+// ===== 今週〜翌々週日曜 =====
+function getDisplayDates() {
 
-    // ===== アクセス時間 =====
-    const now = new Date();
-    document.getElementById("updated").innerText =
-      "更新: " + now.toLocaleString();
+    const today = new Date()
+    const day = today.getDay() || 7 // 月=1
 
-    // ===== 月曜始まり =====
-    const getMonday = (d) => {
-      const date = new Date(d);
-      const day = date.getDay();
-      const diff = (day === 0 ? -6 : 1) - day;
-      date.setDate(date.getDate() + diff);
-      return date;
-    };
+    // 今週月曜
+    const start = new Date(today)
+    start.setDate(today.getDate() - (day - 1))
 
-    const start = getMonday(now);
+    // 翌々週日曜
+    const end = new Date(start)
+    end.setDate(start.getDate() + 20)
 
-    // 翌々週の日曜
-    const end = new Date(start);
-    end.setDate(start.getDate() + 20);
+    const dates = []
+    let d = new Date(start)
 
-    // ===== ヘッダー =====
-    const days = ["月","火","水","木","金","土","日"];
-    days.forEach(d => {
-      const el = document.createElement("div");
-      el.className = "day header";
-      el.innerText = d;
-      cal.appendChild(el);
-    });
-
-    // ===== 日付ループ =====
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-
-      const dateStr =
-  d.getFullYear() + "-" +
-  String(d.getMonth()+1).padStart(2,"0") + "-" +
-  String(d.getDate()).padStart(2,"0");
-
-      const cell = document.createElement("div");
-      cell.className = "day";
-
-      // 過去日
-      if (d < new Date(now.toDateString())) {
-        cell.classList.add("past");
-      }
-
-      const dateEl = document.createElement("div");
-      dateEl.className = "date";
-      dateEl.innerText = d.getDate();
-      cell.appendChild(dateEl);
-
-      // ===== イベント =====
-      const events = data.filter(e => e.date === dateStr);
-
-      events.forEach(ev => {
-        const e = document.createElement("div");
-        e.className = "event " + ev.site;
-        e.innerText = `${ev.site} ${ev.part}`;
-        cell.appendChild(e);
-      });
-
-      cal.appendChild(cell);
+    while (d <= end) {
+        dates.push(new Date(d))
+        d.setDate(d.getDate() + 1)
     }
 
-  });
+    return dates
+}
+
+// ===== 日付フォーマット =====
+function formatDate(d) {
+    return d.toISOString().slice(0,10)
+}
+
+// ===== カレンダー描画 =====
+async function render() {
+
+    const res = await fetch("events.json")
+    const events = await res.json()
+
+    const cal = document.getElementById("calendar")
+
+    // ===== 更新時刻 =====
+    document.getElementById("updated").innerText =
+        "更新: " + new Date().toLocaleString()
+
+    // ===== 曜日ヘッダ =====
+    DAYS.forEach(d => {
+        const el = document.createElement("div")
+        el.className = "day header"
+        el.innerText = d
+        cal.appendChild(el)
+    })
+
+    const dates = getDisplayDates()
+    const today = new Date()
+
+    dates.forEach(d => {
+
+        const el = document.createElement("div")
+        el.className = "day"
+
+        const dateStr = formatDate(d)
+
+        // 過去グレー
+        if (d < today.setHours(0,0,0,0)) {
+            el.classList.add("past")
+        }
+
+        // 日付表示
+        const dateEl = document.createElement("div")
+        dateEl.className = "date"
+        dateEl.innerText = dateStr.slice(5)
+        el.appendChild(dateEl)
+
+        // イベント抽出
+        const dayEvents = events.filter(e => e.date === dateStr)
+
+        dayEvents.forEach(e => {
+            const ev = document.createElement("div")
+            ev.className = "event " + e.site
+            ev.innerText = `${e.site} ${e.part}`
+            el.appendChild(ev)
+        })
+
+        cal.appendChild(el)
+    })
+}
+
+render()
 
 </script>
 
