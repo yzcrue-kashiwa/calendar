@@ -4,26 +4,21 @@ from datetime import datetime, timedelta
 import json
 
 SITES = {
-    "couleur": "https://couleur.example.com",
-    "claris": "https://claris.example.com",
-    "fuel": "https://fuel.example.com"
+    "couleur": "https://couleur.studio-colore.tokyo/yoyaku-toiawase/",
+    "claris": "https://claris-studio-colore-mixbox.com/reserve/",
+    "fuel": "https://fuel-studio-colore.com/reserve/"
 }
 
-# ===== 10日間リストを作る =====
+# ===== 10日分 =====
 def get_target_dates():
     today = datetime.today()
-    dates = []
+    return [
+        (today + timedelta(days=i)).strftime("%Y-%m-%d")
+        for i in range(10)
+    ]
 
-    for i in range(10):
-        d = today + timedelta(days=i)
-        dates.append(d.strftime("%Y-%m-%d"))
-
-    return dates
-
-# ===== 月データ取得 =====
-def fetch_month(site_name, base_url, year, month):
-
-    url = base_url
+# ===== 月取得 =====
+def fetch_month(site, url, year, month):
 
     payload = {
         "action": "xo_event_calendar_month",
@@ -32,9 +27,92 @@ def fetch_month(site_name, base_url, year, month):
         "month": month
     }
 
-    print(f"\n🌐 {site_name} {year}-{month}")
+    print(f"\n🌐 {site} {year}-{month}")
 
-    r = requests.post(url, data=payload)
+    try:
+        r = requests.post(url, data=payload, timeout=10)
+    except Exception as e:
+        print("❌ ERROR:", e)
+        return []
+
+    print("STATUS:", r.status_code)
+    print("LEN:", len(r.text))
+
+    soup = BeautifulSoup(r.text, "html.parser")
+    weeks = soup.select(".month-week")
+
+    print("🧩 weeks:", len(weeks))
+
+    events = []
+
+    for week in weeks:
+        days = week.select("td")
+
+        for d in days:
+            date = d.get("data-date")
+            if not date:
+                continue
+
+            text = d.get_text(strip=True)
+
+            print(f"{site} {date} | {text}")
+
+            if "1部○" in text:
+                print("✅ ADD 1部:", date)
+                events.append({
+                    "date": date,
+                    "site": site,
+                    "part": "1部"
+                })
+
+            if "2部○" in text:
+                print("✅ ADD 2部:", date)
+                events.append({
+                    "date": date,
+                    "site": site,
+                    "part": "2部"
+                })
+
+    print(f"📦 {site} events:", len(events))
+    return events
+
+# ===== メイン =====
+def main():
+
+    target_dates = set(get_target_dates())
+    print("🎯 TARGET:", target_dates)
+
+    today = datetime.today()
+
+    # 必要な月を自動取得（ここ重要）
+    months = set()
+    for i in range(10):
+        d = today + timedelta(days=i)
+        months.add((d.year, d.month))
+
+    all_events = []
+
+    for site, url in SITES.items():
+
+        for (y, m) in months:
+            events = fetch_month(site, url, y, m)
+
+            for ev in events:
+                if ev["date"] in target_dates:
+                    all_events.append(ev)
+
+    print("\n====================")
+    print("📊 TOTAL:", len(all_events))
+    print("====================")
+
+    with open("docs/events.json", "w", encoding="utf-8") as f:
+        json.dump(all_events, f, ensure_ascii=False, indent=2)
+
+    print("💾 saved docs/events.json")
+
+
+if __name__ == "__main__":
+    main()    r = requests.post(url, data=payload)
     print("STATUS:", r.status_code)
 
     soup = BeautifulSoup(r.text, "html.parser")
