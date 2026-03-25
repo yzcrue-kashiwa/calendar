@@ -11,21 +11,18 @@ body {
   padding: 10px;
 }
 
-/* 更新日時 */
 #updated {
   font-size: 12px;
   margin-bottom: 10px;
   color: #666;
 }
 
-/* カレンダー */
 #calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 5px;
 }
 
-/* 日付セル */
 .day {
   border: 1px solid #ccc;
   padding: 5px;
@@ -34,20 +31,18 @@ body {
   border-radius: 6px;
 }
 
-/* 過去日 */
 .past {
   background: #eee;
   color: #999;
 }
 
-/* 日付 */
 .date {
   font-weight: bold;
   margin-bottom: 4px;
   font-size: 12px;
 }
 
-/* イベント共通 */
+/* イベント */
 .event {
   font-size: 11px;
   margin: 2px 0;
@@ -56,31 +51,19 @@ body {
   color: #fff;
 }
 
-/* 店ごと色 */
+/* 店カラー */
 .couleur { background: #3498db; }
 .claris  { background: #e91e63; }
 .fuel    { background: #ff9800; }
 
-/* ===== スマホ最適化 ===== */
+/* スマホ */
 @media (max-width: 600px) {
-
-  #calendar {
-    gap: 3px;
-  }
-
   .day {
     min-height: 70px;
     font-size: 10px;
-    padding: 4px;
   }
-
-  .date {
-    font-size: 10px;
-  }
-
   .event {
     font-size: 9px;
-    padding: 2px;
   }
 }
 </style>
@@ -94,6 +77,13 @@ body {
 
 <script>
 
+// ===== 店名変換 =====
+const siteNameMap = {
+  couleur: "クルール",
+  claris: "クラリス",
+  fuel: "フーエル"
+}
+
 // ===== 日付フォーマット =====
 function formatDate(d) {
   const y = d.getFullYear()
@@ -102,18 +92,24 @@ function formatDate(d) {
   return `${y}-${m}-${day}`
 }
 
-// ===== 表示範囲 =====
+// ===== 翌々週の日曜まで =====
 function getDisplayDates() {
   const today = new Date()
   const day = today.getDay()
 
+  // 今週の月曜
   const mondayOffset = (day === 0 ? -6 : 1 - day)
-
   const start = new Date(today)
   start.setDate(today.getDate() + mondayOffset)
 
+  // 翌々週の日曜
   const end = new Date(start)
   end.setDate(start.getDate() + 20)
+
+  // ★ 日曜に補正
+  while (end.getDay() !== 0) {
+    end.setDate(end.getDate() + 1)
+  }
 
   const dates = []
   let cur = new Date(start)
@@ -130,6 +126,7 @@ function getDisplayDates() {
 async function render() {
 
   try {
+    // 🔥 docs配下に変更
     const res = await fetch("./docs/events.json?v=" + Date.now())
     const events = await res.json()
 
@@ -167,17 +164,19 @@ async function render() {
       el.appendChild(dateEl)
 
       // 🔥 日付ズレ対策
-      const dayEvents = events.filter(e => 
+      const dayEvents = events.filter(e =>
         e.date.slice(0,10) === dateStr
       )
 
       dayEvents.forEach(e => {
         const ev = document.createElement("div")
 
-        // 店ごと色
         ev.className = "event " + e.site
 
-        ev.innerText = e.part
+        // ★ 店名表示追加
+        const shop = siteNameMap[e.site] || e.site
+
+        ev.innerText = `${shop} ${e.part}`
 
         el.appendChild(ev)
       })
