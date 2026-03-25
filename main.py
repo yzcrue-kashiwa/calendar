@@ -50,8 +50,8 @@ def fetch_month(site, year, month):
     payload = {
         "action": "xo_event_calendar_month",
         "id": "xo-event-calendar-1",
-        "year": year,
-        "month": f"{month:02d}",  # ← 重要
+        "month": f"{year}-{month}",       # ★これが正解
+        "base_month": f"{year}-{month}"   # ★これも重要
     }
 
     print(f"\n🌐 {site['name']} {year}-{month}")
@@ -71,12 +71,18 @@ def fetch_month(site, year, month):
     # ===== fallback（月ズレ対策） =====
     if len(weeks) == 0:
         print("⚠️ retry month-1")
-        payload["month"] = month - 1
+        payload["month"] = f"{year}-{month-1}"
+        payload["base_month"] = f"{year}-{month-1}"
         res = requests.post(site["url"], data=payload, headers=HEADERS)
         soup = BeautifulSoup(res.text, "html.parser")
         weeks = soup.select(".month-week")
 
     print("🧩 weeks:", len(weeks))
+
+    # デバッグ
+    if len(weeks) == 0:
+        print("⚠️ HTML SAMPLE:", res.text[:300])
+        return []
 
     events = []
 
@@ -90,6 +96,8 @@ def fetch_month(site, year, month):
 
             text = normalize(d.get_text())
 
+            print(f"{site['name']} {date} | {text}")
+
             # ===== 判定 =====
             is_1 = ("1部○" in text) and ("1部×" not in text)
             is_2 = ("2部○" in text) and ("2部×" not in text)
@@ -100,6 +108,7 @@ def fetch_month(site, year, month):
                 is_2 = False
 
             if is_1:
+                print("✅ ADD 1部:", date)
                 events.append({
                     "site": site["name"],
                     "date": date,
@@ -107,6 +116,7 @@ def fetch_month(site, year, month):
                 })
 
             if is_2:
+                print("✅ ADD 2部:", date)
                 events.append({
                     "site": site["name"],
                     "date": date,
@@ -127,7 +137,7 @@ def main():
 
     all_events = []
 
-    # ===== 全取得（フィルタしない） =====
+    # ===== 月ごとに全部取得 =====
     for site in SITES:
         for (year, month) in target_months:
             events = fetch_month(site, year, month)
