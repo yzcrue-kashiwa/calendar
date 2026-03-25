@@ -1,152 +1,174 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>空きカレンダー</title>
+import requests
+from bs4 import BeautifulSoup
+import json
+from datetime import datetime, timedelta
 
-<style>
-body { font-family:sans-serif; padding:20px; }
-h1 { text-align:center; }
+# ===== 設定 =====
+TODAY = datetime.now()
+DAYS = 10
 
-#info { text-align:center; margin-bottom:10px; }
+SITES = [
+    {"name": "couleur", "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"},
+    {"name": "claris", "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php"},
+    {"name": "fuel", "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"}
+]
 
-#calendar {
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:6px;
-  max-width:900px;
-  margin:0 auto;
-}
+# ===== 文字正規化 =====
+def normalize(text):
+    return (
+        text.replace("⚪︎", "○")
+            .replace("◯", "○")
+            .replace(" ", "")
+            .replace("　", "")
+            .replace("\n", "")
+            .strip()
+    )
 
-.header { text-align:center; font-weight:bold; }
+# ===== 対象日 =====
+def generate_target_dates():
+    return [
+        (TODAY + timedelta(days=i)).strftime("%Y-%m-%d")
+        for i in range(DAYS)
+    ]
 
-.day {
-  border:1px solid #ccc;
-  min-height:90px;
-  padding:6px;
-}
+# ===== 対象月 =====
+def get_target_months(dates):
+    months = set()
+    for d in dates:
+        dt = datetime.strptime(d, "%Y-%m-%d")
+        months.add((dt.year, dt.month))
+    return list(months)
 
-.today { border:2px solid red; }
-.sat { background:#e6f0ff; }
-.sun { background:#ffe6e6; }
+# ===== 月取得 =====
+def fetch_month(site, year, month, target_dates):
 
-.empty { opacity:0.3; }
-
-.date { font-weight:bold; }
-
-.event {
-  margin-top:3px;
-  padding:2px 4px;
-  border-radius:4px;
-  font-size:12px;
-}
-
-.couleur { background:#cb0cc8; color:#fff; }
-.claris  { background:#0000cb; color:#fff; }
-.fuel    { background:#2cb4ad; color:#fff; }
-</style>
-</head>
-
-<body>
-
-<h1>直近10日 空きカレンダー</h1>
-<div id="info"></div>
-<div id="calendar"></div>
-
-<script>
-const DAYS = 10;
-const calendar = document.getElementById("calendar");
-const info = document.getElementById("info");
-
-const today = new Date();
-today.setHours(0,0,0,0);
-
-// util
-function formatDate(d){
-  return d.toISOString().slice(0,10);
-}
-
-function formatJP(d){
-  return `${d.getMonth()+1}/${d.getDate()}`;
-}
-
-function getWeekIndex(d){
-  return d.getDay() === 0 ? 6 : d.getDay() - 1;
-}
-
-function getDayClass(d){
-  const w = d.getDay();
-  if(w===0) return "sun";
-  if(w===6) return "sat";
-  return "";
-}
-
-// ⭐ここが核心
-function createCalendar(events){
-
-  calendar.innerHTML = "";
-
-  ["月","火","水","木","金","土","日"].forEach(d=>{
-    const el=document.createElement("div");
-    el.className="header";
-    el.textContent=d;
-    calendar.appendChild(el);
-  });
-
-  // 空白
-  const startIndex = getWeekIndex(today);
-  for(let i=0;i<startIndex;i++){
-    calendar.appendChild(document.createElement("div"));
-  }
-
-  // 🔥日付ループ
-  for(let i=0;i<DAYS;i++){
-
-    const d = new Date(today);
-    d.setDate(today.getDate()+i);
-
-    const dateStr = formatDate(d);
-
-    const div = document.createElement("div");
-    div.className = "day " + getDayClass(d);
-
-    if(i===0) div.classList.add("today");
-
-    const dayEvents = events.filter(e => e.date === dateStr);
-
-    const dateEl = document.createElement("div");
-    dateEl.className="date";
-    dateEl.textContent = `${formatJP(d)} (${dayEvents.length})`;
-
-    div.appendChild(dateEl);
-
-    if(dayEvents.length===0){
-      div.classList.add("empty");
+    payload = {
+        "action": "xo_event_calendar_month",
+        "id": "xo-event-calendar-1",
+        "month": f"{year}-{month}",
+        "event": "1",
+        "categories": "",
+        "holidays": "all",
+        "prev": "1",
+        "next": "-1",
+        "start_of_week": "1",
+        "months": "1",
+        "navigation": "1",
+        "title_format": "",
+        "is_locale": "1",
+        "columns": "1",
+        "base_month": f"{year}-{month}"
     }
 
-    dayEvents.forEach(e=>{
-      const ev=document.createElement("div");
-      ev.className=`event ${e.site}`;
-      ev.textContent=`${e.site} ${e.part}`;
-      div.appendChild(ev);
-    });
+    print(f"\n🌐 {site['name']} {year}-{month}")
+    res = requests.post(site["url"], data=payload)
 
-    calendar.appendChild(div);
-  }
-}
+    print("STATUS:", res.status_code)
+    print("LEN:", len(res.text))
 
-// fetch
-fetch("https://yzcrue-kashiwa.github.io/calendar/docs/events.json?" + Date.now())
-  .then(res=>res.json())
-  .then(data=>{
-    console.log("EVENTS:", data);
-    createCalendar(data);
+    soup = BeautifulSoup(res.text, "html.parser")
 
-    const now = new Date();
-    info.textContent =
-      `今日: ${formatJP(today)} / 更新: ${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}`;
-  });
-</script>
+    events = []
 
-</body>
-</html>
+    weeks = soup.select("td.month-week")
+
+    for week in weeks:
+
+        days = week.select("table.month-dayname td div")
+        tables = week.select("table.month-event")
+        rows = [t.select("td") for t in tables]
+
+        for i, d in enumerate(days):
+
+            # 他月除外
+            if "other-month" in d.get("class", []):
+                continue
+
+            day = d.text.strip()
+            if not day.isdigit():
+                continue
+
+            date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
+
+            # 🎯 ピンポイント日付
+            if date not in target_dates:
+                continue
+
+            texts = []
+            for r in rows:
+                if i < len(r):
+                    texts.append(normalize(r[i].get_text()))
+
+            merged = "".join(texts)
+
+            print(f"{site['name']} {date} | {merged}")
+
+            # ===== 🔥 完全判定（fuel対応） =====
+            is_1 = ("1部○" in merged) and ("1部×" not in merged)
+            is_2 = ("2部○" in merged) and ("2部×" not in merged)
+
+            # 撮影NG除外（必要ならON）
+            if "撮影×" in merged:
+                is_1 = False
+                is_2 = False
+
+            if is_1:
+                print("✅ ADD 1部:", date)
+                events.append({
+                    "site": site["name"],
+                    "date": date,
+                    "part": "1部"
+                })
+
+            if is_2:
+                print("✅ ADD 2部:", date)
+                events.append({
+                    "site": site["name"],
+                    "date": date,
+                    "part": "2部"
+                })
+
+    print(f"📦 {site['name']} events:", len(events))
+    return events
+
+# ===== メイン =====
+def main():
+
+    target_dates = generate_target_dates()
+    target_months = get_target_months(target_dates)
+
+    print("🎯 TARGET DATES:", target_dates)
+    print("📅 TARGET MONTHS:", target_months)
+
+    all_events = []
+
+    for site in SITES:
+        for (year, month) in target_months:
+            all_events.extend(fetch_month(site, year, month, target_dates))
+
+    # ===== 重複削除 =====
+    unique = []
+    seen = set()
+
+    for e in all_events:
+        key = (e["site"], e["date"], e["part"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(e)
+
+    # ===== ソート =====
+    unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
+
+    print("\n==============================")
+    print("📊 TOTAL:", len(unique))
+    print("==============================")
+
+    # ===== 保存 =====
+    with open("docs/events.json", "w", encoding="utf-8") as f:
+        json.dump(unique, f, ensure_ascii=False, indent=2)
+
+    print("💾 saved docs/events.json")
+
+# ===== 実行 =====
+if __name__ == "__main__":
+    main()
