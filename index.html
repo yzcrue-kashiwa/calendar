@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>予約カレンダー</title>
+<title>コローレ系列空き状況カレンダー</title>
 
 <style>
 body {
@@ -11,18 +11,21 @@ body {
   padding: 10px;
 }
 
+/* 更新 */
 #updated {
   font-size: 12px;
   margin-bottom: 10px;
   color: #666;
 }
 
+/* カレンダー */
 #calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 5px;
 }
 
+/* 日付 */
 .day {
   border: 1px solid #ccc;
   padding: 5px;
@@ -39,7 +42,6 @@ body {
 .date {
   font-weight: bold;
   margin-bottom: 4px;
-  font-size: 12px;
 }
 
 /* イベント */
@@ -51,12 +53,34 @@ body {
   color: #fff;
 }
 
-/* 店カラー */
+/* 色分け */
 .couleur { background: #3498db; }
 .claris  { background: #e91e63; }
 .fuel    { background: #ff9800; }
 
-/* スマホ */
+/* ===== リンクエリア ===== */
+#links {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #ccc;
+}
+
+.link-btn {
+  display: block;
+  margin: 6px 0;
+  padding: 8px;
+  text-align: center;
+  border-radius: 6px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.link-couleur { background: #3498db; }
+.link-claris  { background: #e91e63; }
+.link-fuel    { background: #ff9800; }
+
+/* ===== スマホ ===== */
 @media (max-width: 600px) {
   .day {
     min-height: 70px;
@@ -75,14 +99,24 @@ body {
 <div id="updated"></div>
 <div id="calendar"></div>
 
-<script>
+<!-- 🔗 店舗リンク -->
+<div id="links">
+  <h3>カレンダー元ページ</h3>
 
-// ===== 店名変換 =====
-const siteNameMap = {
-  couleur: "クルール",
-  claris: "クラリス",
-  fuel: "フーエル"
-}
+  <a class="link-btn link-couleur" href="https://couleur.studio-colore.tokyo/yoyaku-toiawase/" target="_blank">
+    couleur
+  </a>
+
+  <a class="link-btn link-claris" href="https://claris-studio-colore-mixbox.com/reserve/" target="_blank">
+    claris
+  </a>
+
+  <a class="link-btn link-fuel" href="https://fuel-studio-colore.com/reserve/" target="_blank">
+    fuel
+  </a>
+</div>
+
+<script>
 
 // ===== 日付フォーマット =====
 function formatDate(d) {
@@ -92,21 +126,18 @@ function formatDate(d) {
   return `${y}-${m}-${day}`
 }
 
-// ===== 翌々週の日曜まで =====
+// ===== 表示範囲 =====
 function getDisplayDates() {
   const today = new Date()
   const day = today.getDay()
 
-  // 今週の月曜
   const mondayOffset = (day === 0 ? -6 : 1 - day)
   const start = new Date(today)
   start.setDate(today.getDate() + mondayOffset)
 
-  // 翌々週の日曜
   const end = new Date(start)
   end.setDate(start.getDate() + 20)
 
-  // ★ 日曜に補正
   while (end.getDay() !== 0) {
     end.setDate(end.getDate() + 1)
   }
@@ -126,17 +157,14 @@ function getDisplayDates() {
 async function render() {
 
   try {
-    // 🔥 docs配下に変更
     const res = await fetch("./docs/events.json?v=" + Date.now())
     const events = await res.json()
-
-    console.log("EVENTS:", events)
 
     const cal = document.getElementById("calendar")
     cal.innerHTML = ""
 
-    const updated = document.getElementById("updated")
-    updated.innerText = "最終更新: " + new Date().toLocaleString()
+    document.getElementById("updated").innerText =
+      "最終更新: " + new Date().toLocaleString()
 
     const today = new Date()
     today.setHours(0,0,0,0)
@@ -157,27 +185,19 @@ async function render() {
 
       const dateStr = formatDate(d)
 
-      // 日付
       const dateEl = document.createElement("div")
       dateEl.className = "date"
       dateEl.innerText = dateStr
       el.appendChild(dateEl)
 
-      // 🔥 日付ズレ対策
       const dayEvents = events.filter(e =>
         e.date.slice(0,10) === dateStr
       )
 
       dayEvents.forEach(e => {
         const ev = document.createElement("div")
-
         ev.className = "event " + e.site
-
-        // ★ 店名表示追加
-        const shop = siteNameMap[e.site] || e.site
-
-        ev.innerText = `${shop} ${e.part}`
-
+        ev.innerText = `${e.site} ${e.part}`
         el.appendChild(ev)
       })
 
