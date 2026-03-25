@@ -7,7 +7,7 @@ import os
 
 # ===== 設定 =====
 TODAY = datetime.now()
-DAYS = 10
+DAYS = 20
 
 SITES = [
     {"name": "couleur", "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"},
