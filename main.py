@@ -67,12 +67,21 @@ def fetch_month(site, year, month):
 
     print("\n🚀 FETCH START:", site["name"], year, month)
 
-    payload = {
-        "action": "xo_event_calendar_month",
-        "id": "xo-event-calendar-1",
-        "month": f"{year}-{month}",
-        "base_month": f"{year}-{month}"
-    }
+payload = {
+    "action": "xo_event_calendar_month",
+    "id": "xo-event-calendar-1",
+    "month": f"{year}-{month}",
+    "event": "1",          # ★これ超重要
+    "categories": "",
+    "holidays": "all",
+    "prev": "1",
+    "next": "-1",
+    "start_of_week": "1",
+    "months": "1",
+    "navigation": "1",
+    "columns": "1",
+    "base_month": f"{year}-{month}"
+}
 
     res = post_with_retry(site["url"], payload)
 
