@@ -1,152 +1,113 @@
 import requests
 from bs4 import BeautifulSoup
-import json
 from datetime import datetime, timedelta
+import json
 
-# ===== 基準日 =====
-TODAY = datetime.now()
-DAYS = 10
+SITES = {
+    "couleur": "https://couleur.example.com",
+    "claris": "https://claris.example.com",
+    "fuel": "https://fuel.example.com"
+}
 
-# ===== サイト =====
-SITES = [
-    {"name": "couleur", "url": "https://couleur.studio-colore.tokyo/wp-admin/admin-ajax.php"},
-    {"name": "claris", "url": "https://claris-studio-colore-mixbox.com/wp-admin/admin-ajax.php"},
-    {"name": "fuel", "url": "https://fuel-studio-colore.com/wp-admin/admin-ajax.php"}
-]
-
-# ===== 正規化 =====
-def normalize(text):
-    return (
-        text.replace("⚪︎", "○")
-            .replace("◯", "○")
-            .replace(" ", "")
-            .replace("　", "")
-            .replace("\n", "")
-            .strip()
-    )
-
-# ===== 対象日リスト生成 =====
-def generate_target_dates():
+# ===== 10日間リストを作る =====
+def get_target_dates():
+    today = datetime.today()
     dates = []
-    for i in range(DAYS):
-        d = TODAY + timedelta(days=i)
+
+    for i in range(10):
+        d = today + timedelta(days=i)
         dates.append(d.strftime("%Y-%m-%d"))
+
     return dates
 
-# ===== 必要な月を抽出 =====
-def get_target_months(dates):
-    months = set()
-    for d in dates:
-        dt = datetime.strptime(d, "%Y-%m-%d")
-        months.add((dt.year, dt.month))
-    return list(months)
+# ===== 月データ取得 =====
+def fetch_month(site_name, base_url, year, month):
 
-# ===== 月取得 =====
-def fetch_month(site, year, month, target_dates):
+    url = base_url
 
     payload = {
         "action": "xo_event_calendar_month",
         "id": "xo-event-calendar-1",
-        "month": f"{year}-{month}",
-        "event": "1",
-        "categories": "",
-        "holidays": "all",
-        "prev": "1",
-        "next": "-1",
-        "start_of_week": "1",
-        "months": "1",
-        "navigation": "1",
-        "title_format": "",
-        "is_locale": "1",
-        "columns": "1",
-        "base_month": f"{year}-{month}"
+        "year": year,
+        "month": month
     }
 
-    print(f"\n🌐 {site['name']} {year}-{month}")
-    res = requests.post(site["url"], data=payload)
+    print(f"\n🌐 {site_name} {year}-{month}")
 
-    print("STATUS:", res.status_code)
+    r = requests.post(url, data=payload)
+    print("STATUS:", r.status_code)
 
-    soup = BeautifulSoup(res.text, "html.parser")
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    weeks = soup.select(".month-week")
+    print("🧩 weeks:", len(weeks))
 
     events = []
 
-    weeks = soup.select("td.month-week")
-
     for week in weeks:
+        days = week.select("td")
 
-        days = week.select("table.month-dayname td div")
-        tables = week.select("table.month-event")
-        rows = [t.select("td") for t in tables]
-
-        for i, d in enumerate(days):
-
-            if "other-month" in d.get("class", []):
+        for d in days:
+            date = d.get("data-date")
+            if not date:
                 continue
 
-            day = d.text.strip()
-            if not day.isdigit():
-                continue
+            text = d.get_text(strip=True)
 
-            date = f"{year}-{str(month).zfill(2)}-{str(day).zfill(2)}"
+            # ===== 判定 =====
+            has1 = "1部○" in text
+            has2 = "2部○" in text
 
-            # 🔥 ピンポイント判定（これが最強）
-            if date not in target_dates:
-                continue
+            if has1:
+                events.append({
+                    "date": date,
+                    "site": site_name,
+                    "part": "1部"
+                })
 
-            texts = []
-            for r in rows:
-                if i < len(r):
-                    texts.append(normalize(r[i].get_text()))
+            if has2:
+                events.append({
+                    "date": date,
+                    "site": site_name,
+                    "part": "2部"
+                })
 
-            merged = "".join(texts)
-
-            print(f"{site['name']} {date} | {merged}")
-
-            if "1部○" in merged:
-                events.append({"site": site["name"], "date": date, "part": "1部"})
-
-            if "2部○" in merged:
-                events.append({"site": site["name"], "date": date, "part": "2部"})
-
-    print(f"📦 {site['name']} events:", len(events))
+    print(f"📦 {site_name} events:", len(events))
     return events
 
 # ===== メイン =====
 def main():
 
-    target_dates = generate_target_dates()
-    target_months = get_target_months(target_dates)
+    target_dates = set(get_target_dates())
+    print("🎯 TARGET:", target_dates)
 
-    print("🎯 TARGET DATES:", target_dates)
-    print("📅 TARGET MONTHS:", target_months)
+    today = datetime.today()
+
+    months = set()
+
+    # 対象日から必要な月を自動算出
+    for i in range(10):
+        d = today + timedelta(days=i)
+        months.add((d.year, d.month))
 
     all_events = []
 
-    for site in SITES:
-        for (year, month) in target_months:
-            all_events.extend(fetch_month(site, year, month, target_dates))
+    for site, url in SITES.items():
 
-    # 重複削除
-    unique = []
-    seen = set()
+        for (y, m) in months:
+            events = fetch_month(site, url, y, m)
 
-    for e in all_events:
-        key = (e["site"], e["date"], e["part"])
-        if key not in seen:
-            seen.add(key)
-            unique.append(e)
-
-    # ソート
-    unique.sort(key=lambda x: (x["date"], x["site"], x["part"]))
+            for ev in events:
+                if ev["date"] in target_dates:
+                    print("✅ ADD:", ev)
+                    all_events.append(ev)
 
     print("\n====================")
-    print("📊 TOTAL:", len(unique))
+    print("📊 TOTAL:", len(all_events))
     print("====================")
 
-    # 保存
     with open("docs/events.json", "w", encoding="utf-8") as f:
-        json.dump(unique, f, ensure_ascii=False, indent=2)
+        json.dump(all_events, f, ensure_ascii=False, indent=2)
 
     print("💾 saved docs/events.json")
 
