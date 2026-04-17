@@ -20,6 +20,11 @@
     "part": "2部"
   },
   {
+    "site": "fuel",
+    "date": "2026-04-19",
+    "part": "2部"
+  },
+  {
     "site": "claris",
     "date": "2026-04-20",
     "part": "1部"
@@ -73,6 +78,11 @@
     "site": "claris",
     "date": "2026-04-22",
     "part": "2部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-04-22",
+    "part": "1部"
   },
   {
     "site": "fuel",
@@ -136,11 +146,6 @@
   },
   {
     "site": "claris",
-    "date": "2026-04-25",
-    "part": "2部"
-  },
-  {
-    "site": "fuel",
     "date": "2026-04-25",
     "part": "2部"
   },
@@ -228,6 +233,11 @@
     "site": "couleur",
     "date": "2026-04-30",
     "part": "2部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-04-30",
+    "part": "1部"
   },
   {
     "site": "claris",
