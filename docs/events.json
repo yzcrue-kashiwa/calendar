@@ -215,11 +215,6 @@
     "part": "2部"
   },
   {
-    "site": "couleur",
-    "date": "2026-04-30",
-    "part": "2部"
-  },
-  {
     "site": "fuel",
     "date": "2026-04-30",
     "part": "1部"
@@ -397,6 +392,16 @@
   {
     "site": "couleur",
     "date": "2026-05-07",
+    "part": "2部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-05-08",
+    "part": "1部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-05-08",
     "part": "2部"
   }
 ]
