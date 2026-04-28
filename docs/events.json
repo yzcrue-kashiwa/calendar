@@ -1,20 +1,5 @@
 [
   {
-    "site": "claris",
-    "date": "2026-04-27",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-04-27",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-04-27",
-    "part": "2部"
-  },
-  {
     "site": "couleur",
     "date": "2026-04-28",
     "part": "2部"
@@ -40,11 +25,6 @@
     "part": "2部"
   },
   {
-    "site": "fuel",
-    "date": "2026-04-30",
-    "part": "1部"
-  },
-  {
     "site": "couleur",
     "date": "2026-05-01",
     "part": "1部"
@@ -62,11 +42,6 @@
   {
     "site": "fuel",
     "date": "2026-05-02",
-    "part": "1部"
-  },
-  {
-    "site": "fuel",
-    "date": "2026-05-02",
     "part": "2部"
   },
   {
@@ -76,11 +51,6 @@
   },
   {
     "site": "claris",
-    "date": "2026-05-03",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
     "date": "2026-05-03",
     "part": "2部"
   },
@@ -130,7 +100,12 @@
     "part": "2部"
   },
   {
-    "site": "couleur",
+    "site": "fuel",
+    "date": "2026-05-05",
+    "part": "1部"
+  },
+  {
+    "site": "fuel",
     "date": "2026-05-05",
     "part": "2部"
   },
@@ -176,16 +151,6 @@
   },
   {
     "site": "couleur",
-    "date": "2026-05-07",
-    "part": "2部"
-  },
-  {
-    "site": "fuel",
-    "date": "2026-05-07",
-    "part": "1部"
-  },
-  {
-    "site": "fuel",
     "date": "2026-05-07",
     "part": "2部"
   },
@@ -295,6 +260,16 @@
     "part": "2部"
   },
   {
+    "site": "fuel",
+    "date": "2026-05-13",
+    "part": "1部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-05-13",
+    "part": "2部"
+  },
+  {
     "site": "couleur",
     "date": "2026-05-14",
     "part": "2部"
@@ -332,6 +307,26 @@
   {
     "site": "fuel",
     "date": "2026-05-16",
+    "part": "2部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-05-17",
+    "part": "1部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-05-17",
+    "part": "2部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-05-17",
+    "part": "2部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-05-17",
     "part": "2部"
   }
 ]
