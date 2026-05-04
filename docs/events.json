@@ -1,16 +1,6 @@
 [
   {
     "site": "claris",
-    "date": "2026-05-03",
-    "part": "1部"
-  },
-  {
-    "site": "fuel",
-    "date": "2026-05-03",
-    "part": "2部"
-  },
-  {
-    "site": "claris",
     "date": "2026-05-04",
     "part": "1部"
   },
@@ -80,6 +70,16 @@
     "part": "2部"
   },
   {
+    "site": "fuel",
+    "date": "2026-05-07",
+    "part": "1部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-05-07",
+    "part": "2部"
+  },
+  {
     "site": "couleur",
     "date": "2026-05-08",
     "part": "1部"
@@ -95,11 +95,6 @@
     "part": "2部"
   },
   {
-    "site": "couleur",
-    "date": "2026-05-09",
-    "part": "1部"
-  },
-  {
     "site": "fuel",
     "date": "2026-05-09",
     "part": "1部"
@@ -118,11 +113,6 @@
     "site": "claris",
     "date": "2026-05-10",
     "part": "2部"
-  },
-  {
-    "site": "fuel",
-    "date": "2026-05-11",
-    "part": "1部"
   },
   {
     "site": "claris",
@@ -206,11 +196,6 @@
   },
   {
     "site": "couleur",
-    "date": "2026-05-16",
-    "part": "2部"
-  },
-  {
-    "site": "fuel",
     "date": "2026-05-16",
     "part": "2部"
   },
@@ -337,6 +322,26 @@
   {
     "site": "fuel",
     "date": "2026-05-22",
+    "part": "2部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-05-23",
+    "part": "1部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-05-23",
+    "part": "2部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-05-23",
+    "part": "2部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-05-23",
     "part": "2部"
   }
 ]
