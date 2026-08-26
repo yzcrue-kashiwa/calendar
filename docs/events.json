@@ -1,58 +1,13 @@
 [
   {
-    "site": "claris",
-    "date": "2026-08-26",
-    "part": "2部"
-  },
-  {
     "site": "fuel",
     "date": "2026-08-27",
     "part": "1部"
   },
   {
-    "site": "claris",
-    "date": "2026-08-28",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-08-29",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-08-30",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-08-30",
-    "part": "2部"
-  },
-  {
     "site": "fuel",
     "date": "2026-08-30",
     "part": "2部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-08-31",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-08-31",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-08-31",
-    "part": "2部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-01",
-    "part": "1部"
   },
   {
     "site": "fuel",
@@ -65,36 +20,6 @@
     "part": "2部"
   },
   {
-    "site": "claris",
-    "date": "2026-09-02",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-02",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-02",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-03",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-03",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-03",
-    "part": "1部"
-  },
-  {
     "site": "fuel",
     "date": "2026-09-03",
     "part": "1部"
@@ -102,36 +27,6 @@
   {
     "site": "fuel",
     "date": "2026-09-03",
-    "part": "2部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-04",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-04",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-04",
-    "part": "1部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-04",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-05",
-    "part": "1部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-05",
     "part": "2部"
   },
   {
@@ -140,16 +35,6 @@
     "part": "1部"
   },
   {
-    "site": "claris",
-    "date": "2026-09-06",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-06",
-    "part": "2部"
-  },
-  {
     "site": "fuel",
     "date": "2026-09-06",
     "part": "1部"
@@ -160,34 +45,9 @@
     "part": "2部"
   },
   {
-    "site": "claris",
-    "date": "2026-09-07",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-07",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-07",
-    "part": "1部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-07",
-    "part": "2部"
-  },
-  {
     "site": "fuel",
     "date": "2026-09-07",
     "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-08",
-    "part": "1部"
   },
   {
     "site": "fuel",
@@ -200,36 +60,6 @@
     "part": "2部"
   },
   {
-    "site": "claris",
-    "date": "2026-09-09",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-09",
-    "part": "2部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-10",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-10",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-10",
-    "part": "1部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-10",
-    "part": "2部"
-  },
-  {
     "site": "fuel",
     "date": "2026-09-10",
     "part": "1部"
@@ -240,26 +70,6 @@
     "part": "2部"
   },
   {
-    "site": "claris",
-    "date": "2026-09-11",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-11",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-11",
-    "part": "1部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-11",
-    "part": "2部"
-  },
-  {
     "site": "fuel",
     "date": "2026-09-11",
     "part": "1部"
@@ -267,31 +77,6 @@
   {
     "site": "fuel",
     "date": "2026-09-11",
-    "part": "2部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-12",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-12",
-    "part": "2部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-13",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-13",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-13",
     "part": "2部"
   },
   {
@@ -302,26 +87,6 @@
   {
     "site": "fuel",
     "date": "2026-09-13",
-    "part": "2部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-14",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-09-14",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-14",
-    "part": "1部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-09-14",
     "part": "2部"
   },
   {
