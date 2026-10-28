@@ -428,5 +428,30 @@
     "site": "fuel",
     "date": "2026-11-15",
     "part": "2部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-11-16",
+    "part": "1部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-11-16",
+    "part": "2部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-11-16",
+    "part": "1部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-11-16",
+    "part": "2部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-11-16",
+    "part": "2部"
   }
 ]
