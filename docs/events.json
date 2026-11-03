@@ -1,20 +1,15 @@
 [
   {
-    "site": "claris",
+    "site": "fuel",
+    "date": "2026-11-03",
+    "part": "1部"
+  },
+  {
+    "site": "fuel",
     "date": "2026-11-03",
     "part": "2部"
   },
   {
-    "site": "claris",
-    "date": "2026-11-04",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-11-04",
-    "part": "2部"
-  },
-  {
     "site": "couleur",
     "date": "2026-11-04",
     "part": "1部"
@@ -53,6 +48,11 @@
     "site": "couleur",
     "date": "2026-11-06",
     "part": "2部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-11-06",
+    "part": "1部"
   },
   {
     "site": "fuel",
@@ -108,11 +108,6 @@
     "site": "couleur",
     "date": "2026-11-08",
     "part": "2部"
-  },
-  {
-    "site": "fuel",
-    "date": "2026-11-08",
-    "part": "1部"
   },
   {
     "site": "fuel",
@@ -191,6 +186,16 @@
   },
   {
     "site": "couleur",
+    "date": "2026-11-11",
+    "part": "2部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-11-11",
+    "part": "1部"
+  },
+  {
+    "site": "fuel",
     "date": "2026-11-11",
     "part": "2部"
   },
@@ -221,16 +226,6 @@
   },
   {
     "site": "couleur",
-    "date": "2026-11-13",
-    "part": "2部"
-  },
-  {
-    "site": "fuel",
-    "date": "2026-11-13",
-    "part": "1部"
-  },
-  {
-    "site": "fuel",
     "date": "2026-11-13",
     "part": "2部"
   },
@@ -365,6 +360,16 @@
     "part": "2部"
   },
   {
+    "site": "fuel",
+    "date": "2026-11-19",
+    "part": "1部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-11-19",
+    "part": "2部"
+  },
+  {
     "site": "claris",
     "date": "2026-11-20",
     "part": "1部"
@@ -391,16 +396,6 @@
   },
   {
     "site": "claris",
-    "date": "2026-11-21",
-    "part": "2部"
-  },
-  {
-    "site": "fuel",
-    "date": "2026-11-21",
-    "part": "1部"
-  },
-  {
-    "site": "fuel",
     "date": "2026-11-21",
     "part": "2部"
   },
@@ -416,6 +411,11 @@
   },
   {
     "site": "couleur",
+    "date": "2026-11-22",
+    "part": "1部"
+  },
+  {
+    "site": "fuel",
     "date": "2026-11-22",
     "part": "1部"
   }
