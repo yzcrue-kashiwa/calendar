@@ -55,11 +55,6 @@
     "part": "1部"
   },
   {
-    "site": "couleur",
-    "date": "2026-11-12",
-    "part": "2部"
-  },
-  {
     "site": "claris",
     "date": "2026-11-13",
     "part": "2部"
@@ -83,6 +78,11 @@
     "site": "claris",
     "date": "2026-11-14",
     "part": "2部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-11-14",
+    "part": "1部"
   },
   {
     "site": "couleur",
