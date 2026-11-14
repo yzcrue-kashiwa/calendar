@@ -1,10 +1,5 @@
 [
   {
-    "site": "claris",
-    "date": "2026-11-13",
-    "part": "2部"
-  },
-  {
     "site": "couleur",
     "date": "2026-11-14",
     "part": "1部"
@@ -115,16 +110,6 @@
     "part": "2部"
   },
   {
-    "site": "fuel",
-    "date": "2026-11-19",
-    "part": "1部"
-  },
-  {
-    "site": "fuel",
-    "date": "2026-11-19",
-    "part": "2部"
-  },
-  {
     "site": "claris",
     "date": "2026-11-20",
     "part": "1部"
@@ -151,6 +136,11 @@
   },
   {
     "site": "claris",
+    "date": "2026-11-21",
+    "part": "2部"
+  },
+  {
+    "site": "fuel",
     "date": "2026-11-21",
     "part": "2部"
   },
@@ -212,6 +202,11 @@
   {
     "site": "fuel",
     "date": "2026-11-24",
+    "part": "1部"
+  },
+  {
+    "site": "fuel",
+    "date": "2026-11-24",
     "part": "2部"
   },
   {
@@ -310,6 +305,11 @@
     "part": "2部"
   },
   {
+    "site": "fuel",
+    "date": "2026-11-29",
+    "part": "2部"
+  },
+  {
     "site": "claris",
     "date": "2026-11-30",
     "part": "1部"
@@ -347,31 +347,51 @@
   {
     "site": "couleur",
     "date": "2026-12-01",
+    "part": "2部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-12-02",
+    "part": "1部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-12-02",
+    "part": "2部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-12-02",
+    "part": "1部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-12-02",
+    "part": "2部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-12-03",
+    "part": "1部"
+  },
+  {
+    "site": "claris",
+    "date": "2026-12-03",
+    "part": "2部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-12-03",
+    "part": "1部"
+  },
+  {
+    "site": "couleur",
+    "date": "2026-12-03",
     "part": "2部"
   },
   {
     "site": "fuel",
-    "date": "2026-12-01",
+    "date": "2026-12-03",
     "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-12-02",
-    "part": "1部"
-  },
-  {
-    "site": "claris",
-    "date": "2026-12-02",
-    "part": "2部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-12-02",
-    "part": "1部"
-  },
-  {
-    "site": "couleur",
-    "date": "2026-12-02",
-    "part": "2部"
   }
 ]
